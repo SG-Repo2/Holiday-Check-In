@@ -32,6 +32,20 @@ const DetailView = () => {
     }
   };
 
+  const handleUpdateChild = (originalName, updatedChild) => {
+    const updatedChildren = selectedAttendee.children.map(child => 
+      child.name === originalName ? updatedChild : child
+    );
+    
+    const updatedAttendee = {
+      ...selectedAttendee,
+      children: updatedChildren
+    };
+    
+    updateAttendee(selectedAttendee.id, updatedAttendee);
+    setSelectedAttendee(updatedAttendee);
+  };
+
   const handleCheckInAttempt = () => {
     // Prevent checking in if already checked in
     if (selectedAttendee.checkedIn) {
@@ -89,8 +103,14 @@ const DetailView = () => {
         <p className="mb-2">
           <strong>Guest Name:</strong> {selectedAttendee.guestName || 'N/A'}
         </p>
-        <p className="mb-4">
+        <p className="mb-2">
           <strong>Service Center:</strong> {selectedAttendee.serviceCenter}
+        </p>
+        <p className="mb-4">
+          <strong>Transportation:</strong> {selectedAttendee.transportation}
+        </p>
+        <p className="mb-4">
+          <strong>Reservation Made:</strong> {selectedAttendee.reservation?.timestamp}
         </p>
 
         <div className="mb-4">
@@ -120,8 +140,27 @@ const DetailView = () => {
             attendee={selectedAttendee} 
             onVerifyChild={handleVerifyChild}
             verifiedChildren={verifiedChildren}
+            onUpdateChild={handleUpdateChild}
           />
         )}
+
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-2">Notes</h3>
+          <div className="flex gap-2">
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="flex-1 p-2 border rounded"
+              rows="2"
+            />
+            <button
+              onClick={handleNotesSave}
+              className="px-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Save
+            </button>
+          </div>
+        </div>
 
         <button
           onClick={handleCheckInAttempt}

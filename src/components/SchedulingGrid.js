@@ -5,8 +5,11 @@ import { AttendeeContext } from '../AttendeeContext';
 const SchedulingGrid = ({ onTimeSlotSelect, selectedSlot }) => {
   const { attendees } = useContext(AttendeeContext);
   const [timeSlots, setTimeSlots] = useState([]);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
+    if (!isExpanded) return;
+
     // Generate time slots for the 4-hour event window
     const slots = [];
     const eventStart = new Date();
@@ -43,7 +46,7 @@ const SchedulingGrid = ({ onTimeSlotSelect, selectedSlot }) => {
     });
 
     setTimeSlots(slots);
-  }, [attendees]);
+  }, [attendees, isExpanded]);
 
   const handleSlotClick = (slot) => {
     if (!slot.available) return;
@@ -51,23 +54,42 @@ const SchedulingGrid = ({ onTimeSlotSelect, selectedSlot }) => {
   };
 
   return (
-    <div className="grid grid-cols-4 gap-2">
-      {timeSlots.map((slot, index) => (
-        <button
-          key={index}
-          onClick={() => handleSlotClick(slot)}
-          disabled={!slot.available}
-          className={`p-2 rounded ${
-            selectedSlot === slot.time
-              ? 'bg-green-500 text-white'
-              : slot.available
-              ? 'bg-gray-100 hover:bg-gray-200'
-              : 'bg-red-100 cursor-not-allowed'
-          }`}
+    <div>
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-2 mb-2 text-left bg-gray-100 hover:bg-gray-200 rounded flex justify-between items-center"
+      >
+        <span>Select Time Slot</span>
+        <svg 
+          className={`w-5 h-5 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
         >
-          {slot.time}
-        </button>
-      ))}
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      
+      {isExpanded && (
+        <div className="grid grid-cols-4 gap-2">
+          {timeSlots.map((slot, index) => (
+            <button
+              key={index}
+              onClick={() => handleSlotClick(slot)}
+              disabled={!slot.available}
+              className={`p-2 rounded ${
+                selectedSlot === slot.time
+                  ? 'bg-green-500 text-white'
+                  : slot.available
+                  ? 'bg-gray-100 hover:bg-gray-200'
+                  : 'bg-red-300 cursor-not-allowed'
+              }`}
+            >
+              {slot.time}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -11,7 +11,26 @@ export const AttendeeProvider = ({ children }) => {
     // Load attendees from JSON file
     fetch('/attendees.json')
       .then((response) => response.json())
-      .then((data) => setAttendees(data));
+      .then((data) => {
+        // Ensure all required fields exist with defaults
+        const processedData = data.map(attendee => ({
+          ...attendee,
+          checkedIn: attendee.checkedIn || false,
+          guestName: attendee.guestName || '',
+          notes: attendee.notes || '',
+          children: (attendee.children || []).map(child => ({
+            name: child.name,
+            age: child.age || 0,
+            gender: child.gender || '',
+            verified: child.verified || false
+          })),
+          reservation: attendee.reservation || {
+            timestamp: '',
+            attending: false
+          }
+        }));
+        setAttendees(processedData);
+      });
   }, []);
 
   const updateAttendee = (id, updatedInfo) => {
@@ -37,10 +56,18 @@ export const AttendeeProvider = ({ children }) => {
   };
 
   const addChild = (attendeeId, newChild) => {
+    // Ensure new child has all required fields
+    const processedChild = {
+      name: newChild.name,
+      age: newChild.age || 0,
+      gender: newChild.gender || '',
+      verified: newChild.verified || false
+    };
+
     setAttendees((prevAttendees) =>
       prevAttendees.map((attendee) =>
         attendee.id === attendeeId
-          ? { ...attendee, children: [...attendee.children, newChild] }
+          ? { ...attendee, children: [...(attendee.children || []), processedChild] }
           : attendee
       )
     );
