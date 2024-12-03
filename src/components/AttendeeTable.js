@@ -1,12 +1,13 @@
-// src/components/AttendeeTable.js
 import React, { useContext, useState } from 'react';
 import { AttendeeContext } from '../AttendeeContext';
 import AttendeeRow from './AttendeeRow';
+import AddAttendeeForm from './AddAttendeeForm';
 
 const AttendeeTable = () => {
   const { attendees } = useContext(AttendeeContext);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCheckedIn, setShowCheckedIn] = useState(undefined);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const filteredAttendees = attendees.filter((attendee) =>
     `${attendee.firstName} ${attendee.lastName}`
@@ -16,6 +17,15 @@ const AttendeeTable = () => {
 
   return (
     <div className="pt-20 px-4">
+      <div className="flex justify-between mb-4">
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Add New Attendee
+        </button>
+      </div>
+      {showAddForm && <AddAttendeeForm onClose={() => setShowAddForm(false)} />}
       <div className="flex gap-4 mb-4">
         <input
           type="text"

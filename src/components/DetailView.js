@@ -1,6 +1,6 @@
-// src/components/DetailView.js
 import React, { useContext, useState, useEffect } from 'react';
 import { AttendeeContext } from '../AttendeeContext';
+import { PhotoContext } from '../PhotoContext';
 import SchedulingGrid from './SchedulingGrid';
 import ChildrenList from './ChildrenList';
 
@@ -8,19 +8,23 @@ const DetailView = () => {
   const {
     selectedAttendee,
     setSelectedAttendee,
-    updateAttendee,
+    updateAttendee
   } = useContext(AttendeeContext);
+
+  const { updatePhotoSession } = useContext(PhotoContext);
 
   const [notes, setNotes] = useState('');
   const [verifiedChildren, setVerifiedChildren] = useState([]);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [showTimeSlotWarning, setShowTimeSlotWarning] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     if (selectedAttendee) {
       setNotes(selectedAttendee.notes || '');
       setVerifiedChildren(selectedAttendee.children?.filter(child => child.verified) || []);
+      setEmail(selectedAttendee.email || '');
     }
   }, [selectedAttendee]);
 
@@ -62,14 +66,12 @@ const DetailView = () => {
   };
 
   const handleConfirmCheckIn = () => {
-    // Log the time slot to verify it's being captured
-    console.log('Selected time slot:', selectedTimeSlot);
-
-    // Create updated attendee object
+    // Create updated attendee object with the current email value
     const updatedAttendee = {
       ...selectedAttendee,
       checkedIn: true,
       photographyTimeSlot: selectedTimeSlot,
+      email: email, // Include the current email value
       children: selectedAttendee.children?.map(child => ({
         ...child,
         verified: verifiedChildren.some(vc => vc.name === child.name)
@@ -79,14 +81,72 @@ const DetailView = () => {
     // Update attendee
     updateAttendee(selectedAttendee.id, updatedAttendee);
 
+    // Update photo session with current email
+    updatePhotoSession(selectedAttendee.id, {
+      timeSlot: selectedTimeSlot,
+      confirmed: true,
+      totalParticipants: 1 + (selectedAttendee.children?.length || 0),
+      email: email, // Use the current email value
+    });
+
     // Close confirmation and modal
     setShowConfirmation(false);
-    setSelectedAttendee(null);  // This will return to table view
+    setSelectedAttendee(null);
   };
 
   const handleNotesSave = () => {
     updateAttendee(selectedAttendee.id, { notes });
   };
+
+  const handleEmailUpdate = () => {
+    if (email) {
+      const updatedAttendee = {
+        ...selectedAttendee,
+        email: email
+      };
+      updateAttendee(selectedAttendee.id, updatedAttendee);
+      alert('Email updated successfully');
+    }
+  };
+
+  const handleUpdateCheckedIn = () => {
+    const updatedAttendee = {
+      ...selectedAttendee,
+      email,
+      photographyTimeSlot: selectedTimeSlot,
+      notes
+    };
+
+    updateAttendee(selectedAttendee.id, updatedAttendee);
+    updatePhotoSession(selectedAttendee.id, {
+      timeSlot: selectedTimeSlot,
+      email,
+      notes
+    });
+
+    alert('Attendee information updated successfully');
+  };
+
+  const emailSection = (
+    <div className="mb-4">
+      <h3 className="text-lg font-semibold mb-2">Email Address</h3>
+      <div className="flex gap-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="flex-1 p-2 border rounded"
+          placeholder="Enter email address"
+        />
+        <button
+          onClick={handleEmailUpdate}
+          className="px-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Update
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
@@ -117,7 +177,6 @@ const DetailView = () => {
           <h3 className="text-lg font-semibold mb-2">Photography Time Slot</h3>
           <SchedulingGrid 
             onTimeSlotSelect={(slot) => {
-              console.log('Time slot selected:', slot);
               setSelectedTimeSlot(slot);
               setShowTimeSlotWarning(false);
             }}
@@ -143,6 +202,8 @@ const DetailView = () => {
             onUpdateChild={handleUpdateChild}
           />
         )}
+
+        {emailSection}
 
         <div className="mb-4">
           <h3 className="text-lg font-semibold mb-2">Notes</h3>
@@ -173,6 +234,15 @@ const DetailView = () => {
         >
           {selectedAttendee.checkedIn ? 'Checked In' : 'Check In'}
         </button>
+
+        {selectedAttendee.checkedIn && (
+          <button
+            onClick={handleUpdateCheckedIn}
+            className="w-full mt-4 p-2 bg-blue-500 text-white rounded"
+          >
+            Update Information
+          </button>
+        )}
 
         {showConfirmation && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">

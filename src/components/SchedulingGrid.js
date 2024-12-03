@@ -1,4 +1,3 @@
-// src/components/SchedulingGrid.js
 import React, { useContext, useEffect, useState } from 'react';
 import { AttendeeContext } from '../AttendeeContext';
 
@@ -28,7 +27,9 @@ const SchedulingGrid = ({ onTimeSlotSelect, selectedSlot }) => {
       slots.push({
         time: timeString,
         available: true,
-        reservedBy: null,
+        reservedBy: [],
+        reservationCount: 0,
+        maxReservations: 5
       });
       
       currentTime.setMinutes(currentTime.getMinutes() + 15); // 15-minute intervals
@@ -39,8 +40,9 @@ const SchedulingGrid = ({ onTimeSlotSelect, selectedSlot }) => {
       if (attendee.photographyTimeSlot) {
         const slot = slots.find(s => s.time === attendee.photographyTimeSlot);
         if (slot) {
-          slot.available = false;
-          slot.reservedBy = attendee.id;
+          slot.reservationCount++;
+          slot.reservedBy.push(attendee.id);
+          slot.available = slot.reservationCount < slot.maxReservations;
         }
       }
     });
