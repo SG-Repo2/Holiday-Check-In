@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useContext } from 'react';
-import { PhotoContext } from '../PhotoContext';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { AttendeeContext } from '../AttendeeContext';
 import PhotoSessionDetails from './PhotoSessionDetails';
 import PhotoSessionVerification from './PhotoSessionVerification';
 
-const PhotoSessionCalendarView = () => {
-  const { photoSessions } = useContext(PhotoContext);
+const PhotoSessionCalendarView = ({ filteredSessions }) => {
   const { attendees } = useContext(AttendeeContext);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -29,7 +26,7 @@ const PhotoSessionCalendarView = () => {
         minute: '2-digit' 
       });
       
-      const sessionsAtTime = photoSessions.filter(
+      const sessionsAtTime = filteredSessions.filter(
         session => session.timeSlot === timeString
       );
 
@@ -44,7 +41,7 @@ const PhotoSessionCalendarView = () => {
     }
 
     setTimeSlots(slots);
-  }, [photoSessions]);
+  }, [filteredSessions]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

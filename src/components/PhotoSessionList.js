@@ -1,13 +1,10 @@
 // Import necessary dependencies from React and custom contexts
 import React, { useContext, useState } from 'react';
-import { PhotoContext } from '../PhotoContext';
 import { AttendeeContext } from '../AttendeeContext';
 import PhotoSessionVerification from './PhotoSessionVerification';
 
 // PhotoSessionList component displays a list of photo sessions and allows verification
-const PhotoSessionList = () => {
-  // Get photo sessions data from PhotoContext
-  const { photoSessions } = useContext(PhotoContext);
+const PhotoSessionList = ({ filteredSessions }) => {
   // Get attendees data from AttendeeContext
   const { attendees } = useContext(AttendeeContext);
   // State to track which session is currently selected for verification
@@ -22,7 +19,7 @@ const PhotoSessionList = () => {
     // Container for the list with vertical spacing between items
     <div className="space-y-4">
       {/* Map through all photo sessions to create session cards */}
-      {photoSessions.map((session) => {
+      {filteredSessions.map((session) => {
         // Get attendee information for this session
         const attendee = getAttendeeInfo(session.attendeeId);
         // Skip rendering if attendee info not found

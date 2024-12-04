@@ -1,6 +1,6 @@
 // src/AttendeeContext.js
 import React, { createContext, useState, useEffect } from 'react';
-import initialData from './attendees2024.json';
+import initialDataFile from './attendees2024.json';
 
 export const AttendeeContext = createContext();
 
@@ -11,6 +11,53 @@ const STORAGE_KEYS = {
   VERIFIED_CHILDREN: 'hydro_holiday_verified_children',
   VERIFIED_EMAILS: 'hydro_holiday_verified_emails'
 };
+
+// Helper function to convert attendee data to CSV
+const convertToCSV = (attendees) => {
+  const headers = [
+    'id',
+    'firstName',
+    'lastName',
+    'email',
+    'serviceCenter',
+    'checkedIn',
+    'reservation',
+    'shuttleBus',
+    'children',
+    'notes',
+    'additionalInfo'
+  ];
+
+  const rows = attendees.map(attendee => {
+    const row = {};
+    headers.forEach(header => {
+      if (header === 'children') {
+        row[header] = Array.isArray(attendee[header]) ? attendee[header].join(';') : '';
+      } else if (typeof attendee[header] === 'object') {
+        row[header] = JSON.stringify(attendee[header]);
+      } else {
+        row[header] = attendee[header];
+      }
+    });
+    return row;
+  });
+
+  // Create CSV string
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => headers.map(header => {
+      const cell = row[header] ?? '';
+      return typeof cell === 'string' && cell.includes(',') 
+        ? `"${cell.replace(/"/g, '""')}"` 
+        : cell;
+    }).join(','))
+  ].join('\n');
+
+  return csvContent;
+};
+
+// Extract attendees from the initial data file
+const initialData = initialDataFile.attendees || initialDataFile;
 
 export const AttendeeProvider = ({ children }) => {
   const [attendees, setAttendees] = useState([]);
@@ -121,26 +168,30 @@ export const AttendeeProvider = ({ children }) => {
   };
 
   // Reset to initial data
-  const resetToInitial = async () => {
-    // Clear all stored data first
-    clearAllStoredData();
-    
-    // Reset to initial data from JSON file
-    const initialAttendees = initialData.attendees.map(attendee => ({
-      ...attendee,
-      checkedIn: false,
-      photographyStatus: attendee.photographyTimeSlot ? 'scheduled' : undefined,
-      photographyEmail: '',
-      emailVerified: false,
-      childrenVerified: false,
-      children: attendee.children?.map(child => ({
-        ...child,
-        verified: false
-      })) || []
-    }));
-    
-    setAttendees(initialAttendees);
-    saveToStorage(STORAGE_KEYS.ATTENDEES, initialAttendees);
+  const resetToInitial = () => {
+    try {
+      // Clear all stored data first
+      clearAllStoredData();
+      
+      // Reset attendees to initial data
+      const processedInitialData = initialData.map(attendee => ({
+        ...attendee,
+        checkedIn: false,
+        verifiedEmail: false,
+        verifiedChildren: false
+      }));
+      
+      setAttendees(processedInitialData);
+      setSelectedAttendee(null);
+      
+      // Save the reset data
+      saveToStorage(STORAGE_KEYS.ATTENDEES, processedInitialData);
+      
+      return true;
+    } catch (error) {
+      console.error('Error resetting data:', error);
+      return false;
+    }
   };
 
   // Export verified sessions
@@ -166,23 +217,52 @@ export const AttendeeProvider = ({ children }) => {
     }
   };
 
+  // Export attendees to CSV
+  const exportAttendeesToCSV = () => {
+    try {
+      const csvContent = convertToCSV(attendees);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+      const filename = `attendees_export_${timestamp}.csv`;
+      
+      if (window.navigator.msSaveOrOpenBlob) {
+        window.navigator.msSaveBlob(blob, filename);
+      } else {
+        link.href = window.URL.createObjectURL(blob);
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error exporting attendees:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
 
   return (
-    <AttendeeContext.Provider value={{
-      attendees,
-      selectedAttendee,
-      setSelectedAttendee,
-      updateAttendee,
-      updateChild,
-      removeChild,
-      resetToInitial,
-      isLoading,
-      exportVerifiedSessions,
-      addAttendee
-    }}>
+    <AttendeeContext.Provider
+      value={{
+        attendees,
+        selectedAttendee,
+        setSelectedAttendee,
+        updateAttendee,
+        updateChild,
+        removeChild,
+        resetToInitial,
+        isLoading,
+        exportVerifiedSessions,
+        exportAttendeesToCSV,
+        addAttendee
+      }}
+    >
       {children}
     </AttendeeContext.Provider>
   );

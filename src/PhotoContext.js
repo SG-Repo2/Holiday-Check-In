@@ -59,7 +59,9 @@ export const PhotoProvider = ({ children }) => {
         if (db) {
           const dbData = await db.get(STORE_NAME, 'current');
           if (dbData) {
-            setPhotoSessions(dbData);
+            // Convert from old object format if necessary
+            const sessions = Array.isArray(dbData) ? dbData : Object.values(dbData);
+            setPhotoSessions(sessions);
             return;
           }
         }
@@ -67,7 +69,12 @@ export const PhotoProvider = ({ children }) => {
         // Fallback to localStorage
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-          setPhotoSessions(JSON.parse(stored));
+          const parsedData = JSON.parse(stored);
+          // Convert from old object format if necessary
+          const sessions = Array.isArray(parsedData) ? parsedData : Object.values(parsedData);
+          setPhotoSessions(sessions);
+        } else {
+          setPhotoSessions([]);
         }
       } catch (error) {
         console.error('Error loading photo sessions:', error);
@@ -147,6 +154,27 @@ export const PhotoProvider = ({ children }) => {
     });
   };
 
+  const resetPhotoSessions = async () => {
+    try {
+      // Clear IndexedDB
+      const db = await initDB();
+      if (db) {
+        await db.clear(STORE_NAME);
+      }
+      
+      // Clear localStorage
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(`${STORAGE_KEY}_lastUpdate`);
+      
+      // Reset state
+      setPhotoSessions([]);
+      return true;
+    } catch (error) {
+      console.error('Error resetting photo sessions:', error);
+      return false;
+    }
+  };
+
   if (isLoading) {
     return <div>Loading photo sessions...</div>;
   }
@@ -155,8 +183,9 @@ export const PhotoProvider = ({ children }) => {
     <PhotoContext.Provider value={{
       photoSessions,
       setPhotoSessions,
+      isLoading,
       updatePhotoSession,
-      isLoading
+      resetPhotoSessions
     }}>
       {children}
     </PhotoContext.Provider>

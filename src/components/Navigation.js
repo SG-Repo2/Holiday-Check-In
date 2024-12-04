@@ -1,38 +1,34 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AttendeeContext } from '../AttendeeContext';
 import { PhotoContext } from '../PhotoContext';
 import initialData from '../attendees2024.json';
+import { useNavigation } from '../hooks/useNavigation';
 
 const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { selectedAttendee, resetToInitial } = useContext(AttendeeContext);
+  const {
+    isMobileMenuOpen,
+    setIsMobileMenuOpen,
+    showResetModal,
+    setShowResetModal,
+    showSuccessToast,
+    toastMessage,
+    handleReset,
+    handleExport
+  } = useNavigation();
+  const { selectedAttendee, resetToInitial, exportAttendeesToCSV } = useContext(AttendeeContext);
   const { setPhotoSessions } = useContext(PhotoContext);
-
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
 
   const navItems = [
     { path: '/', label: 'Attendee List' },
     { path: '/photo-sessions', label: 'Photo Sessions' }
   ];
 
-  const handleReset = () => {
-    if (window.confirm('Reset data? This will restore the original attendee list and remove any added attendees.')) {
-      // Reset attendees using context function
-      resetToInitial();
-      
-      // Clear photo sessions
-      localStorage.removeItem('photoSessions');
-      setPhotoSessions([]);
-
-      // Navigate to home page
-      navigate('/');
-    }
-  };
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   return (
     <nav className="bg-hydro-blue fixed w-full z-50">
@@ -65,10 +61,16 @@ const Navigation = () => {
 
           <div className="hidden md:block">
             <button
-              onClick={handleReset}
-              className="px-4 py-2 rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              onClick={() => setShowResetModal(true)}
+              className="px-4 py-2 text-sm font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
               Reset Data
+            </button>
+            <button
+              onClick={handleExport}
+              className="ml-4 px-4 py-2 text-sm font-medium text-green-600 bg-green-100 rounded-md hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              Export to CSV
             </button>
           </div>
 
@@ -112,13 +114,53 @@ const Navigation = () => {
             </Link>
           ))}
           <button
-            onClick={handleReset}
-            className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-white hover:bg-blue-700 transition-colors"
+            onClick={() => setShowResetModal(true)}
+            className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
             Reset Data
           </button>
+          <button
+            onClick={handleExport}
+            className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-green-600 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            Export to CSV
+          </button>
         </div>
       </div>
+
+      {/* Reset Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <h2 className="text-lg font-bold mb-4">Confirm Reset</h2>
+            <p className="mb-4">Are you sure you want to reset all data? This action cannot be undone.</p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowResetModal(false)}
+                className="px-4 py-2 mr-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  handleReset();
+                  setShowResetModal(false);
+                }}
+                className="px-4 py-2 text-sm font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
+          {toastMessage}
+        </div>
+      )}
     </nav>
   );
 };

@@ -1,158 +1,25 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { AttendeeContext } from '../AttendeeContext';
-import { PhotoContext } from '../PhotoContext';
+import React from 'react';
+import { useDetailView } from '../hooks/useDetailView';
 import SchedulingGrid from './SchedulingGrid';
 import ChildrenList from './ChildrenList';
 
 const DetailView = () => {
   const {
+    formState,
+    showTimeSlotWarning,
+    setShowTimeSlotWarning,
+    showConfirmation,
+    setShowConfirmation,
+    hasUnsavedChanges,
+    handleInputChange,
+    handleVerifyChild,
+    handleSaveChanges,
+    handleCheckIn,
     selectedAttendee,
-    setSelectedAttendee,
-    updateAttendee
-  } = useContext(AttendeeContext);
-
-  const { updatePhotoSession } = useContext(PhotoContext);
-
-  const [formState, setFormState] = useState({
-    notes: '',
-    email: '',
-    selectedTimeSlot: null,
-    verifiedChildren: []
-  });
-  
-  const [showTimeSlotWarning, setShowTimeSlotWarning] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  // Load initial data when attendee changes
-  useEffect(() => {
-    if (selectedAttendee) {
-      setFormState({
-        notes: selectedAttendee.notes || '',
-        email: selectedAttendee.email || '',
-        selectedTimeSlot: selectedAttendee.photographyTimeSlot || null,
-        verifiedChildren: selectedAttendee.children?.filter(child => child.verified) || []
-      });
-      setHasUnsavedChanges(false);
-    }
-  }, [selectedAttendee]);
-
-  // Update form state when children are modified
-  useEffect(() => {
-    if (selectedAttendee?.children) {
-      setFormState(prev => ({
-        ...prev,
-        verifiedChildren: selectedAttendee.children.filter(child => child.verified) || []
-      }));
-    }
-  }, [selectedAttendee?.children]);
-
-  // Warn about unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+    handleClose
+  } = useDetailView();
 
   if (!selectedAttendee) return null;
-
-  const handleInputChange = (field, value) => {
-    setFormState(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    setHasUnsavedChanges(true);
-  };
-
-  const handleVerifyChild = (child) => {
-    if (!formState.verifiedChildren.find(vc => vc.name === child.name)) {
-      const newVerifiedChildren = [...formState.verifiedChildren, child];
-      handleInputChange('verifiedChildren', newVerifiedChildren);
-    }
-  };
-
-  const handleSaveChanges = async () => {
-    try {
-      // Update attendee record
-      const updatedAttendee = {
-        ...selectedAttendee,
-        notes: formState.notes,
-        email: formState.email,
-        photographyTimeSlot: formState.selectedTimeSlot,
-        children: selectedAttendee.children?.map(child => ({
-          ...child,
-          verified: formState.verifiedChildren.some(vc => vc.name === child.name)
-        })) || []
-      };
-
-      await updateAttendee(selectedAttendee.id, updatedAttendee);
-
-      // Update photo session if time slot is set
-      if (formState.selectedTimeSlot) {
-        await updatePhotoSession(selectedAttendee.id, {
-          timeSlot: formState.selectedTimeSlot,
-          email: formState.email,
-          notes: formState.notes,
-          totalParticipants: 1 + 
-            (selectedAttendee.children?.length || 0) + 
-            (selectedAttendee.guestNames?.length || 0)
-        });
-      }
-
-      setHasUnsavedChanges(false);
-      alert('Changes saved successfully!');
-    } catch (error) {
-      console.error('Error saving changes:', error);
-      alert('Error saving changes. Please try again.');
-    }
-  };
-
-  const handleCheckIn = async () => {
-    if (!formState.selectedTimeSlot) {
-      setShowTimeSlotWarning(true);
-      return;
-    }
-
-    if (!formState.email) {
-      alert('Please enter an email address for photo delivery');
-      return;
-    }
-
-    try {
-      const updatedAttendee = {
-        ...selectedAttendee,
-        checkedIn: true,
-        email: formState.email,
-        photographyTimeSlot: formState.selectedTimeSlot,
-        notes: formState.notes,
-        children: selectedAttendee.children?.map(child => ({
-          ...child,
-          verified: formState.verifiedChildren.some(vc => vc.name === child.name)
-        })) || []
-      };
-
-      await updateAttendee(selectedAttendee.id, updatedAttendee);
-      await updatePhotoSession(selectedAttendee.id, {
-        timeSlot: formState.selectedTimeSlot,
-        email: formState.email,
-        status: 'scheduled',
-        totalParticipants: 1 + 
-          (selectedAttendee.children?.length || 0) + 
-          (selectedAttendee.guestNames?.length || 0)
-      });
-
-      setSelectedAttendee(null);
-    } catch (error) {
-      console.error('Error during check-in:', error);
-      alert('Error during check-in. Please try again.');
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
@@ -162,15 +29,7 @@ const DetailView = () => {
             {selectedAttendee.firstName} {selectedAttendee.lastName}
           </h2>
           <button
-            onClick={() => {
-              if (hasUnsavedChanges) {
-                if (window.confirm('You have unsaved changes. Are you sure you want to close?')) {
-                  setSelectedAttendee(null);
-                }
-              } else {
-                setSelectedAttendee(null);
-              }
-            }}
+            onClick={handleClose}
             className="text-gray-500 hover:text-gray-700"
           >
             ×
