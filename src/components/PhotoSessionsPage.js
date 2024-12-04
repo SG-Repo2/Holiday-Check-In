@@ -11,43 +11,45 @@ const PhotoSessionsPage = () => {
   const { photoSessions } = useContext(PhotoContext);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Photography Sessions</h1>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-4 py-2 rounded ${
-              viewMode === 'list'
-                ? 'bg-hydro-blue text-white'
-                : 'bg-gray-100 hover:bg-gray-200'
-            }`}
-          >
-            List View
-          </button>
-          <button
-            onClick={() => setViewMode('calendar')}
-            className={`px-4 py-2 rounded ${
-              viewMode === 'calendar'
-                ? 'bg-hydro-blue text-white'
-                : 'bg-gray-100 hover:bg-gray-200'
-            }`}
-          >
-            Calendar View
-          </button>
+    <div className="min-h-screen bg-gray-100">
+      <div className="container mx-auto px-4 pt-32">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Photography Sessions</h1>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-4 py-2 rounded ${
+                viewMode === 'list'
+                  ? 'bg-hydro-blue text-white'
+                  : 'bg-gray-100 hover:bg-gray-200'
+              }`}
+            >
+              List View
+            </button>
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`px-4 py-2 rounded ${
+                viewMode === 'calendar'
+                  ? 'bg-hydro-blue text-white'
+                  : 'bg-gray-100 hover:bg-gray-200'
+              }`}
+            >
+              Calendar View
+            </button>
+          </div>
         </div>
+        
+        <div className="mb-4">
+          {viewMode === 'list' ? (
+            <PhotoSessionList />
+          ) : (
+            <PhotoSessionCalendarView />
+          )}
+        </div>
+        
+        {/* DetailView will show consistently regardless of which view is active */}
+        {selectedAttendee && <DetailView />}
       </div>
-      
-      <div className="mb-4">
-        {viewMode === 'list' ? (
-          <PhotoSessionList />
-        ) : (
-          <PhotoSessionCalendarView />
-        )}
-      </div>
-      
-      {/* DetailView will show consistently regardless of which view is active */}
-      {selectedAttendee && <DetailView />}
     </div>
   );
 };

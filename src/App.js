@@ -13,6 +13,7 @@ function App() {
     <AttendeeProvider>
       <PhotoProvider>
         <Router>
+          <Navigation />
           <Routes>
             {/* Landing page route */}
             <Route 
@@ -33,7 +34,6 @@ function App() {
               element={
                 <div className="min-h-screen bg-gray-100">
                   <SearchBar />
-                  <Navigation />
                   <div className="container mx-auto px-4 pt-32">
                     <AttendeeTable />
                     <DetailView />

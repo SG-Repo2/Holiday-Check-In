@@ -1,88 +1,138 @@
 // src/AttendeeContext.js
 import React, { createContext, useState, useEffect } from 'react';
-import { openDB } from 'idb';
 import initialData from './attendees2024.json';
 
 export const AttendeeContext = createContext();
 
-const DB_NAME = 'attendeeDB';
-const STORE_NAME = 'attendees';
-const DB_VERSION = 1;
-const STORAGE_KEY = 'persistedAttendees';
+// Storage keys for different types of data
+const STORAGE_KEYS = {
+  ATTENDEES: 'hydro_holiday_attendees',
+  PHOTO_SESSIONS: 'hydro_holiday_photo_sessions',
+  VERIFIED_CHILDREN: 'hydro_holiday_verified_children',
+  VERIFIED_EMAILS: 'hydro_holiday_verified_emails'
+};
 
 export const AttendeeProvider = ({ children }) => {
   const [attendees, setAttendees] = useState([]);
   const [selectedAttendee, setSelectedAttendee] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const initDB = async () => {
+  // Load data from localStorage
+  const loadFromStorage = (key) => {
     try {
-      return await openDB(DB_NAME, DB_VERSION, {
-        upgrade(db) {
-          if (!db.objectStoreNames.contains(STORE_NAME)) {
-            db.createObjectStore(STORE_NAME);
-          }
-        },
-      });
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
     } catch (error) {
-      console.error('Error initializing database:', error);
+      console.error(`Error loading data for ${key}:`, error);
       return null;
     }
   };
 
-  const persistData = async (data) => {
+  // Save data to localStorage
+  const saveToStorage = (key, data) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      const db = await initDB();
-      if (db) {
-        await db.put(STORE_NAME, data, 'current');
-      }
+      localStorage.setItem(key, JSON.stringify(data));
+      return true;
     } catch (error) {
-      console.error('Error persisting data:', error);
+      console.error(`Error saving data for ${key}:`, error);
+      return false;
     }
   };
 
+  // Clear all stored data
+  const clearAllStoredData = () => {
+    Object.values(STORAGE_KEYS).forEach(key => {
+      localStorage.removeItem(key);
+    });
+  };
+
+  // Initialize or load existing data
   const loadData = async () => {
     try {
       setIsLoading(true);
       
-      // Try localStorage first
-      const storedData = localStorage.getItem(STORAGE_KEY);
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        if (parsedData && parsedData.length > 0) {
-          setAttendees(parsedData);
-          return;
-        }
-      }
-
-      // Initialize from initial data if no stored data
-      const initialAttendees = initialData.attendees.map(attendee => ({
-        ...attendee,
-        checkedIn: false,
-        photographyStatus: attendee.photographyTimeSlot ? 'scheduled' : undefined,
-        photographyEmail: '',
-        children: attendee.children?.map(child => ({
-          ...child,
-          verified: false
-        })) || []
-      }));
+      // Try to load existing data
+      const storedAttendees = loadFromStorage(STORAGE_KEYS.ATTENDEES);
       
-      setAttendees(initialAttendees);
-      persistData(initialAttendees);
+      if (storedAttendees && storedAttendees.length > 0) {
+        setAttendees(storedAttendees);
+      } else {
+        // Initialize with default data if no stored data exists
+        await resetToInitial();
+      }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error in loadData:', error);
+      await resetToInitial();
     } finally {
       setIsLoading(false);
     }
   };
 
-  const resetToInitial = () => {
+  // Update attendee with automatic storage
+  const updateAttendee = (id, updates) => {
+    setAttendees(prev => {
+      const newAttendees = prev.map(a => 
+        a.id === id ? { ...a, ...updates } : a
+      );
+      saveToStorage(STORAGE_KEYS.ATTENDEES, newAttendees);
+      return newAttendees;
+    });
+  };
+
+  // Update child information
+  const updateChild = (attendeeId, originalChildName, updatedChildInfo) => {
+    setAttendees(prev => {
+      const newAttendees = prev.map(attendee => {
+        if (attendee.id === attendeeId) {
+          const updatedChildren = attendee.children.map(child => 
+            child.name === originalChildName ? { ...child, ...updatedChildInfo } : child
+          );
+          return { ...attendee, children: updatedChildren };
+        }
+        return attendee;
+      });
+      saveToStorage(STORAGE_KEYS.ATTENDEES, newAttendees);
+      return newAttendees;
+    });
+  };
+
+  // Remove child
+  const removeChild = (attendeeId, childName) => {
+    setAttendees(prev => {
+      const newAttendees = prev.map(attendee => {
+        if (attendee.id === attendeeId) {
+          const updatedChildren = attendee.children.filter(child => child.name !== childName);
+          return { ...attendee, children: updatedChildren };
+        }
+        return attendee;
+      });
+      saveToStorage(STORAGE_KEYS.ATTENDEES, newAttendees);
+      return newAttendees;
+    });
+  };
+
+  // Add new attendee
+  const addAttendee = (newAttendee) => {
+    setAttendees(prev => {
+      const newAttendees = [...prev, newAttendee];
+      saveToStorage(STORAGE_KEYS.ATTENDEES, newAttendees);
+      return newAttendees;
+    });
+  };
+
+  // Reset to initial data
+  const resetToInitial = async () => {
+    // Clear all stored data first
+    clearAllStoredData();
+    
+    // Reset to initial data from JSON file
     const initialAttendees = initialData.attendees.map(attendee => ({
       ...attendee,
       checkedIn: false,
       photographyStatus: attendee.photographyTimeSlot ? 'scheduled' : undefined,
       photographyEmail: '',
+      emailVerified: false,
+      childrenVerified: false,
       children: attendee.children?.map(child => ({
         ...child,
         verified: false
@@ -90,47 +140,49 @@ export const AttendeeProvider = ({ children }) => {
     }));
     
     setAttendees(initialAttendees);
-    persistData(initialAttendees);
+    saveToStorage(STORAGE_KEYS.ATTENDEES, initialAttendees);
   };
 
-  const updateAttendee = (id, updates) => {
-    setAttendees(prev => {
-      const newAttendees = prev.map(a => 
-        a.id === id ? { ...a, ...updates } : a
-      );
-      persistData(newAttendees);
-      return newAttendees;
-    });
-  };
-
-  const addAttendee = (newAttendee) => {
-    setAttendees(prev => {
-      const newAttendees = [...prev, newAttendee];
-      persistData(newAttendees);
-      return newAttendees;
-    });
+  // Export verified sessions
+  const exportVerifiedSessions = () => {
+    const verifiedSessions = attendees
+      .filter(a => a.photographyStatus === 'verified')
+      .map(a => ({
+        name: `${a.firstName} ${a.lastName}`,
+        email: a.photographyEmail,
+        timeSlot: a.photographyTimeSlot
+      }));
+    
+    if (verifiedSessions.length > 0) {
+      const dataStr = JSON.stringify(verifiedSessions, null, 2);
+      const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+      
+      const exportFileDefaultName = `verified_sessions_${new Date().toISOString().split('T')[0]}.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+    }
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
-    <AttendeeContext.Provider
-      value={{
-        attendees,
-        setAttendees,
-        selectedAttendee,
-        setSelectedAttendee,
-        updateAttendee,
-        addAttendee,
-        resetToInitial,
-      }}
-    >
+    <AttendeeContext.Provider value={{
+      attendees,
+      selectedAttendee,
+      setSelectedAttendee,
+      updateAttendee,
+      updateChild,
+      removeChild,
+      resetToInitial,
+      isLoading,
+      exportVerifiedSessions,
+      addAttendee
+    }}>
       {children}
     </AttendeeContext.Provider>
   );

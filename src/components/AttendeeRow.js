@@ -112,6 +112,36 @@ const AttendeeRow = ({ attendee, showCheckedIn }) => {
                   </p>
                 )}
               </div>
+              {/* Status badges */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {attendee.checkedIn && (
+                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                    Checked In
+                  </span>
+                )}
+                {attendee.photographyStatus === 'completed' && (
+                  <div className="flex flex-col">
+                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                      Completed
+                    </span>
+                    {attendee.photographyTimeSlot && (
+                      <span className="text-xs text-gray-600 mt-1">
+                        {attendee.photographyTimeSlot}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {attendee.photographyStatus === 'verified' && (
+                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                    Verified
+                  </span>
+                )}
+                {attendee.manualEntry && (
+                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                    Manual Entry
+                  </span>
+                )}
+              </div>
             </>
           )}
         </div>

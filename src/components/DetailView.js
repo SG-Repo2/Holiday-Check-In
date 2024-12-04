@@ -13,260 +13,237 @@ const DetailView = () => {
 
   const { updatePhotoSession } = useContext(PhotoContext);
 
-  const [notes, setNotes] = useState('');
-  const [verifiedChildren, setVerifiedChildren] = useState([]);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
+  const [formState, setFormState] = useState({
+    notes: '',
+    email: '',
+    selectedTimeSlot: null,
+    verifiedChildren: []
+  });
+  
   const [showTimeSlotWarning, setShowTimeSlotWarning] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [email, setEmail] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // Load initial data when attendee changes
   useEffect(() => {
     if (selectedAttendee) {
-      setNotes(selectedAttendee.notes || '');
-      setVerifiedChildren(selectedAttendee.children?.filter(child => child.verified) || []);
-      setEmail(selectedAttendee.email || '');
+      setFormState({
+        notes: selectedAttendee.notes || '',
+        email: selectedAttendee.email || '',
+        selectedTimeSlot: selectedAttendee.photographyTimeSlot || null,
+        verifiedChildren: selectedAttendee.children?.filter(child => child.verified) || []
+      });
+      setHasUnsavedChanges(false);
     }
   }, [selectedAttendee]);
 
+  // Warn about unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   if (!selectedAttendee) return null;
 
+  const handleInputChange = (field, value) => {
+    setFormState(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setHasUnsavedChanges(true);
+  };
+
   const handleVerifyChild = (child) => {
-    if (!verifiedChildren.find(vc => vc.name === child.name)) {
-      setVerifiedChildren([...verifiedChildren, child]);
+    if (!formState.verifiedChildren.find(vc => vc.name === child.name)) {
+      const newVerifiedChildren = [...formState.verifiedChildren, child];
+      handleInputChange('verifiedChildren', newVerifiedChildren);
     }
   };
 
-  const handleUpdateChild = (originalName, updatedChild) => {
-    const updatedChildren = selectedAttendee.children.map(child => 
-      child.name === originalName ? updatedChild : child
-    );
-    
-    const updatedAttendee = {
-      ...selectedAttendee,
-      children: updatedChildren
-    };
-    
-    updateAttendee(selectedAttendee.id, updatedAttendee);
-    setSelectedAttendee(updatedAttendee);
+  const handleSaveChanges = async () => {
+    try {
+      // Update attendee record
+      const updatedAttendee = {
+        ...selectedAttendee,
+        notes: formState.notes,
+        email: formState.email,
+        photographyTimeSlot: formState.selectedTimeSlot,
+        children: selectedAttendee.children?.map(child => ({
+          ...child,
+          verified: formState.verifiedChildren.some(vc => vc.name === child.name)
+        })) || []
+      };
+
+      await updateAttendee(selectedAttendee.id, updatedAttendee);
+
+      // Update photo session if time slot is set
+      if (formState.selectedTimeSlot) {
+        await updatePhotoSession(selectedAttendee.id, {
+          timeSlot: formState.selectedTimeSlot,
+          email: formState.email,
+          notes: formState.notes,
+          totalParticipants: 1 + 
+            (selectedAttendee.children?.length || 0) + 
+            (selectedAttendee.guestNames?.length || 0)
+        });
+      }
+
+      setHasUnsavedChanges(false);
+      alert('Changes saved successfully!');
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      alert('Error saving changes. Please try again.');
+    }
   };
 
-  const handleCheckInAttempt = () => {
-    // Prevent checking in if already checked in
-    if (selectedAttendee.checkedIn) {
-      return;
-    }
-
-    // Warn about missing time slot
-    if (!selectedTimeSlot) {
+  const handleCheckIn = async () => {
+    if (!formState.selectedTimeSlot) {
       setShowTimeSlotWarning(true);
       return;
     }
 
-    setShowConfirmation(true);
-  };
+    if (!formState.email) {
+      alert('Please enter an email address for photo delivery');
+      return;
+    }
 
-  const handleConfirmCheckIn = () => {
-    // Create updated attendee object with the current email value
-    const updatedAttendee = {
-      ...selectedAttendee,
-      checkedIn: true,
-      photographyTimeSlot: selectedTimeSlot,
-      email: email, // Include the current email value
-      children: selectedAttendee.children?.map(child => ({
-        ...child,
-        verified: verifiedChildren.some(vc => vc.name === child.name)
-      })) || []
-    };
-
-    // Update attendee
-    updateAttendee(selectedAttendee.id, updatedAttendee);
-
-    // Update photo session with current email
-    updatePhotoSession(selectedAttendee.id, {
-      timeSlot: selectedTimeSlot,
-      confirmed: true,
-      totalParticipants: 1 + (selectedAttendee.children?.length || 0),
-      email: email, // Use the current email value
-    });
-
-    // Close confirmation and modal
-    setShowConfirmation(false);
-    setSelectedAttendee(null);
-  };
-
-  const handleNotesSave = () => {
-    updateAttendee(selectedAttendee.id, { notes });
-  };
-  const handleEmailUpdate = () => {
-    if (email) {
+    try {
       const updatedAttendee = {
         ...selectedAttendee,
-        email: email
+        checkedIn: true,
+        email: formState.email,
+        photographyTimeSlot: formState.selectedTimeSlot,
+        notes: formState.notes,
+        children: selectedAttendee.children?.map(child => ({
+          ...child,
+          verified: formState.verifiedChildren.some(vc => vc.name === child.name)
+        })) || []
       };
-      updateAttendee(selectedAttendee.id, updatedAttendee);
-      alert('Email updated successfully');
+
+      await updateAttendee(selectedAttendee.id, updatedAttendee);
+      await updatePhotoSession(selectedAttendee.id, {
+        timeSlot: formState.selectedTimeSlot,
+        email: formState.email,
+        status: 'scheduled',
+        totalParticipants: 1 + 
+          (selectedAttendee.children?.length || 0) + 
+          (selectedAttendee.guestNames?.length || 0)
+      });
+
+      setSelectedAttendee(null);
+    } catch (error) {
+      console.error('Error during check-in:', error);
+      alert('Error during check-in. Please try again.');
     }
   };
-
-  const handleUpdateCheckedIn = () => {
-    const updatedAttendee = {
-      ...selectedAttendee,
-      email,
-      photographyTimeSlot: selectedTimeSlot,
-      notes
-    };
-
-    updateAttendee(selectedAttendee.id, updatedAttendee);
-    updatePhotoSession(selectedAttendee.id, {
-      timeSlot: selectedTimeSlot,
-      email,
-      notes
-    });
-
-    setSelectedAttendee(null);
-  };
-
-  const emailSection = (
-    <div className="mb-4">
-      <h3 className="text-lg font-semibold mb-2">Email Address</h3>
-      <div className="flex gap-2">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="flex-1 p-2 border rounded"
-          placeholder="Enter email address"
-        />
-        <button
-          onClick={handleEmailUpdate}
-          className="px-3 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Update
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
       <div className="bg-white p-6 rounded shadow-lg w-11/12 max-w-md relative max-h-[90vh] overflow-y-auto">
-        <button
-          className="text-red-600 font-bold absolute top-2 right-2"
-          onClick={() => setSelectedAttendee(null)}
-        >
-          &times;
-        </button>
-        <h2 className="text-xl mb-4">
-          {selectedAttendee.firstName} {selectedAttendee.lastName}
-        </h2>
-        <p className="mb-2">
-          <strong>Guest Name:</strong> {selectedAttendee.guestName || 'N/A'}
-        </p>
-        <p className="mb-2">
-          <strong>Service Center:</strong> {selectedAttendee.serviceCenter}
-        </p>
-        <p className="mb-4">
-          <strong>Transportation:</strong> {selectedAttendee.transportation}
-        </p>
-        <p className="mb-4">
-          <strong>Reservation Made:</strong> {selectedAttendee.reservation?.timestamp}
-        </p>
-
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold mb-2">Photography Time Slot</h3>
-          <SchedulingGrid 
-            onTimeSlotSelect={(slot) => {
-              setSelectedTimeSlot(slot);
-              setShowTimeSlotWarning(false);
+        <div className="flex justify-between items-start mb-4">
+          <h2 className="text-xl font-semibold">
+            {selectedAttendee.firstName} {selectedAttendee.lastName}
+          </h2>
+          <button
+            onClick={() => {
+              if (hasUnsavedChanges) {
+                if (window.confirm('You have unsaved changes. Are you sure you want to close?')) {
+                  setSelectedAttendee(null);
+                }
+              } else {
+                setSelectedAttendee(null);
+              }
             }}
-            selectedSlot={selectedTimeSlot}
-          />
-          {showTimeSlotWarning && (
-            <p className="text-yellow-600 mt-2">
-              Please select a photography time slot.
-            </p>
-          )}
-          {selectedTimeSlot && (
-            <p className="text-green-600 mt-2">
-              Selected time: {selectedTimeSlot}
-            </p>
-          )}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ×
+          </button>
         </div>
 
-        {selectedAttendee.children && selectedAttendee.children.length > 0 && (
-          <ChildrenList 
-            attendee={selectedAttendee} 
-            onVerifyChild={handleVerifyChild}
-            verifiedChildren={verifiedChildren}
-            onUpdateChild={handleUpdateChild}
-          />
-        )}
-
-        {emailSection}
-
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold mb-2">Notes</h3>
-          <div className="flex gap-2">
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="flex-1 p-2 border rounded"
-              rows="2"
+        {/* Form Fields */}
+        <div className="space-y-4">
+          {/* Email Field */}
+          <div>
+            <label className="block font-medium mb-1">Email Address</label>
+            <input
+              type="email"
+              value={formState.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              className="w-full p-2 border rounded"
+              placeholder="Enter email address"
             />
-            <button
-              onClick={handleNotesSave}
-              className="px-3 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Save
-            </button>
+          </div>
+
+          {/* Time Slot Selection */}
+          <div>
+            <label className="block font-medium mb-1">Photo Session Time</label>
+            <SchedulingGrid
+              selectedSlot={formState.selectedTimeSlot}
+              onTimeSlotSelect={(time) => handleInputChange('selectedTimeSlot', time)}
+            />
+          </div>
+
+          {/* Notes Field */}
+          <div>
+            <label className="block font-medium mb-1">Notes</label>
+            <textarea
+              value={formState.notes}
+              onChange={(e) => handleInputChange('notes', e.target.value)}
+              className="w-full p-2 border rounded"
+              rows="3"
+              placeholder="Add notes..."
+            />
+          </div>
+
+          {/* Children List */}
+          {selectedAttendee.children?.length > 0 && (
+            <ChildrenList
+              attendee={selectedAttendee}
+              onVerifyChild={handleVerifyChild}
+              verifiedChildren={formState.verifiedChildren}
+            />
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3 pt-4">
+            {hasUnsavedChanges && (
+              <button
+                onClick={handleSaveChanges}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Save Changes
+              </button>
+            )}
+            
+            {!selectedAttendee.checkedIn && (
+              <button
+                onClick={handleCheckIn}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Check In
+              </button>
+            )}
           </div>
         </div>
 
-        <button
-          onClick={handleCheckInAttempt}
-          className={`w-full mt-6 p-2 rounded ${
-            selectedAttendee.checkedIn
-              ? 'bg-gray-400 text-white cursor-not-allowed opacity-50'
-              : 'bg-green-600 text-white hover:bg-green-700'
-          }`}
-          disabled={selectedAttendee.checkedIn}
-        >
-          {selectedAttendee.checkedIn ? 'Checked In' : 'Check In'}
-        </button>
-
-        {selectedAttendee.checkedIn && (
-          <button
-            onClick={handleUpdateCheckedIn}
-            className="w-full mt-4 p-2 bg-blue-500 text-white rounded"
-          >
-            Update Information
-          </button>
-        )}
-
-        {showConfirmation && (
+        {/* Warning Modals */}
+        {showTimeSlotWarning && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
-            <div className="bg-white p-6 rounded shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Confirm Check-In</h3>
-              <p>Are you sure you want to check in this attendee?</p>
-              {!selectedTimeSlot && (
-                <p className="text-yellow-600 mt-2">
-                  No photography time slot selected
-                </p>
-              )}
-              <div className="mt-4 flex justify-end space-x-2">
-                <button
-                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-                  onClick={() => setShowConfirmation(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                  onClick={handleConfirmCheckIn}
-                >
-                  Confirm
-                </button>
-              </div>
+            <div className="bg-white p-4 rounded shadow-lg">
+              <p className="mb-4">Please select a photo session time slot before checking in.</p>
+              <button
+                onClick={() => setShowTimeSlotWarning(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                OK
+              </button>
             </div>
           </div>
         )}

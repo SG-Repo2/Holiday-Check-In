@@ -8,7 +8,7 @@ const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { selectedAttendee, setAttendees } = useContext(AttendeeContext);
+  const { selectedAttendee, resetToInitial } = useContext(AttendeeContext);
   const { setPhotoSessions } = useContext(PhotoContext);
 
   useEffect(() => {
@@ -20,29 +20,10 @@ const Navigation = () => {
     { path: '/photo-sessions', label: 'Photo Sessions' }
   ];
 
-  const NavLink = ({ path, label }) => (
-    <Link
-      to={path}
-      className={`
-        px-4 py-2 rounded-md text-sm font-medium transition-colors
-        ${location.pathname === path
-          ? 'bg-hydro-blue text-white'
-          : 'text-gray-700 hover:bg-gray-100'
-        }
-        md:w-auto w-full text-left
-      `}
-    >
-      {label}
-    </Link>
-  );
-
   const handleReset = () => {
     if (window.confirm('Reset data? This will restore the original attendee list and remove any added attendees.')) {
-      // Reset to initial data from JSON file
-      setAttendees(initialData.attendees);
-      
-      // Save attendees to localStorage
-      localStorage.setItem('attendees', JSON.stringify(initialData.attendees));
+      // Reset attendees using context function
+      resetToInitial();
       
       // Clear photo sessions
       localStorage.removeItem('photoSessions');
@@ -54,67 +35,88 @@ const Navigation = () => {
   };
 
   return (
-    <nav className="fixed top-16 w-full bg-white shadow-md z-20">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between h-14 items-center">
-          <div className="hidden md:flex space-x-4">
-            {navItems.map(item => (
-              <NavLink key={item.path} {...item} />
-            ))}
+    <nav className="bg-hydro-blue fixed w-full z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <h1 className="text-white text-xl font-bold">Holiday Party Check-In</h1>
+            </div>
+            <div className="hidden md:block ml-10">
+              <div className="flex items-center space-x-4">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`
+                      px-4 py-2 rounded-md text-sm font-medium transition-colors
+                      ${location.pathname === item.path
+                        ? 'bg-white text-hydro-blue'
+                        : 'text-white hover:bg-blue-700'
+                      }
+                    `}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {process.env.NODE_ENV === 'development' && (
+          <div className="hidden md:block">
             <button
               onClick={handleReset}
-              className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
+              className="px-4 py-2 rounded-md text-sm font-medium text-white hover:bg-blue-700 transition-colors"
             >
               Reset Data
             </button>
-          )}
+          </div>
 
-          {selectedAttendee && (
-            <div className="hidden md:block text-sm text-gray-600">
-              Selected: {selectedAttendee.firstName} {selectedAttendee.lastName}
-            </div>
-          )}
-
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100"
-          >
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+          {/* Mobile menu button */}
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-white hover:bg-blue-700 p-2 rounded-md"
             >
+              <span className="sr-only">Open main menu</span>
               {isMobileMenuOpen ? (
-                <path d="M6 18L18 6M6 6l12 12" />
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               ) : (
-                <path d="M4 6h16M4 12h16M4 18h16" />
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
               )}
-            </svg>
-          </button>
+            </button>
+          </div>
         </div>
+      </div>
 
-        <div
-          className={`
-            md:hidden
-            ${isMobileMenuOpen ? 'block' : 'hidden'}
-            py-2 space-y-2
-          `}
-        >
-          {navItems.map(item => (
-            <NavLink key={item.path} {...item} />
+      {/* Mobile menu */}
+      <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:hidden bg-hydro-blue`}>
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`
+                block px-3 py-2 rounded-md text-base font-medium transition-colors
+                ${location.pathname === item.path
+                  ? 'bg-white text-hydro-blue'
+                  : 'text-white hover:bg-blue-700'
+                }
+              `}
+            >
+              {item.label}
+            </Link>
           ))}
-          {selectedAttendee && (
-            <div className="px-4 py-2 text-sm text-gray-600">
-              Selected: {selectedAttendee.firstName} {selectedAttendee.lastName}
-            </div>
-          )}
+          <button
+            onClick={handleReset}
+            className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            Reset Data
+          </button>
         </div>
       </div>
     </nav>
