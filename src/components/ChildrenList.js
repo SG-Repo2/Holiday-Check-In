@@ -8,9 +8,14 @@ const ChildrenList = ({ attendee, onVerifyChild, verifiedChildren }) => {
   const [newChild, setNewChild] = useState({ name: '', age: '', gender: '' });
 
   const handleVerify = (child) => {
-    // Call verify function and show success message
+    // Update child with verified status
+    updateChild(attendee.id, child.name, {
+      ...child,
+      verified: true
+    });
+    
+    // Call verify function from parent
     onVerifyChild(child);
-    alert(`${child.name} has been verified successfully`);
   };
 
   const handleEdit = (child) => {
@@ -23,15 +28,16 @@ const ChildrenList = ({ attendee, onVerifyChild, verifiedChildren }) => {
       return;
     }
   
+    // Update child information
     updateChild(attendee.id, editingChild.originalName || editingChild.name, {
       name: editingChild.name,
       age: parseInt(editingChild.age),
       gender: editingChild.gender,
+      verified: editingChild.verified || false
     });
-  
+
     // Close the editing modal
     setEditingChild(null);
-    alert('Child information updated successfully');
   };
 
   const handleRemoveChild = (childName) => {

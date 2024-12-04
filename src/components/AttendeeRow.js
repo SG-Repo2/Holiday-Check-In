@@ -112,61 +112,55 @@ const AttendeeRow = ({ attendee, showCheckedIn }) => {
                   </p>
                 )}
               </div>
-              {/* Status badges */}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {attendee.checkedIn && (
-                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                    Checked In
-                  </span>
-                )}
-                {attendee.photographyStatus === 'completed' && (
-                  <div className="flex flex-col">
-                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                      Completed
-                    </span>
-                    {attendee.photographyTimeSlot && (
-                      <span className="text-xs text-gray-600 mt-1">
-                        {attendee.photographyTimeSlot}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {attendee.photographyStatus === 'verified' && (
-                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                    Verified
-                  </span>
-                )}
-                {attendee.manualEntry && (
-                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                    Manual Entry
-                  </span>
-                )}
-              </div>
             </>
           )}
         </div>
         <div className="flex flex-col gap-2 items-end">
-          {!isEditing ? (
-            <button
-              onClick={handleEdit}
-              className="text-blue-600 hover:text-blue-800"
-            >
-              Edit
-            </button>
-          ) : (
-            <div className="space-x-2">
+          {isEditing ? (
+            <div className="flex gap-2">
               <button
                 onClick={handleSave}
-                className="text-green-600 hover:text-green-800"
+                className="px-2 py-1 text-sm text-white bg-green-500 rounded hover:bg-green-600"
               >
                 Save
               </button>
               <button
                 onClick={handleCancel}
-                className="text-red-600 hover:text-red-800"
+                className="px-2 py-1 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
               >
                 Cancel
               </button>
+            </div>
+          ) : (
+            /* Status badges */
+            <div className="flex flex-wrap gap-2 justify-end">
+              {attendee.checkedIn && (
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                  Checked In
+                </span>
+              )}
+              {attendee.photographyStatus === 'completed' && (
+                <div className="flex flex-col items-end">
+                  <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                    Completed
+                  </span>
+                  {attendee.photographyTimeSlot && (
+                    <span className="text-xs text-gray-600 mt-1">
+                      {attendee.photographyTimeSlot}
+                    </span>
+                  )}
+                </div>
+              )}
+              {attendee.photographyStatus === 'verified' && (
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                  Verified
+                </span>
+              )}
+              {attendee.manualEntry && (
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                  Manual Entry
+                </span>
+              )}
             </div>
           )}
         </div>

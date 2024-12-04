@@ -37,6 +37,16 @@ const DetailView = () => {
     }
   }, [selectedAttendee]);
 
+  // Update form state when children are modified
+  useEffect(() => {
+    if (selectedAttendee?.children) {
+      setFormState(prev => ({
+        ...prev,
+        verifiedChildren: selectedAttendee.children.filter(child => child.verified) || []
+      }));
+    }
+  }, [selectedAttendee?.children]);
+
   // Warn about unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e) => {
