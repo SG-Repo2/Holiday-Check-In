@@ -97,7 +97,6 @@ const DetailView = () => {
   const handleNotesSave = () => {
     updateAttendee(selectedAttendee.id, { notes });
   };
-
   const handleEmailUpdate = () => {
     if (email) {
       const updatedAttendee = {
@@ -124,7 +123,7 @@ const DetailView = () => {
       notes
     });
 
-    alert('Attendee information updated successfully');
+    setSelectedAttendee(null);
   };
 
   const emailSection = (

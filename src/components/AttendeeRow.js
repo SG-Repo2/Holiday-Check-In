@@ -20,6 +20,7 @@ const AttendeeRow = ({ attendee, showCheckedIn }) => {
     e.stopPropagation();
     updateAttendee(attendee.id, editedData);
     setIsEditing(false);
+    setSelectedAttendee(null);
   };
 
   const handleCancel = (e) => {

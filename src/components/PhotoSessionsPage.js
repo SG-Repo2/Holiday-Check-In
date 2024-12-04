@@ -7,8 +7,8 @@ import PhotoSessionCalendarView from './PhotoSessionCalendarView';
 
 const PhotoSessionsPage = () => {
   const [viewMode, setViewMode] = useState('list');
-  const { selectedAttendee, attendees } = useContext(AttendeeContext);
-  const { photoSessions, updatePhotoSession } = useContext(PhotoContext);
+  const { selectedAttendee } = useContext(AttendeeContext);
+  const { photoSessions } = useContext(PhotoContext);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -46,6 +46,7 @@ const PhotoSessionsPage = () => {
         )}
       </div>
       
+      {/* DetailView will show consistently regardless of which view is active */}
       {selectedAttendee && <DetailView />}
     </div>
   );

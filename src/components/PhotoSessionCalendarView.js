@@ -2,11 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useContext } from 'react';
 import { PhotoContext } from '../PhotoContext';
 import { AttendeeContext } from '../AttendeeContext';
+import PhotoSessionDetails from './PhotoSessionDetails';
+import PhotoSessionVerification from './PhotoSessionVerification';
 
 const PhotoSessionCalendarView = () => {
   const { photoSessions } = useContext(PhotoContext);
   const { attendees } = useContext(AttendeeContext);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
   const [timeSlots, setTimeSlots] = useState([]);
   const dropdownRef = useRef(null);
 
@@ -63,7 +66,14 @@ const PhotoSessionCalendarView = () => {
       (attendee.guestNames?.length || 0);
 
     return (
-      <div key={session.attendeeId} className="border-b pb-2">
+      <div 
+        key={session.attendeeId} 
+        className="border-b pb-2 cursor-pointer hover:bg-gray-50"
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedSession(session);
+        }}
+      >
         <div className="font-medium">
           {attendee.firstName} {attendee.lastName}
         </div>
@@ -117,15 +127,24 @@ const PhotoSessionCalendarView = () => {
               >
                 <h4 className="font-semibold mb-3">Sessions at {slot.time}</h4>
                 <div className="space-y-3">
-                  {slot.sessions.map(session => {
-                    return getSessionDetails(session);
-                  })}
+                  {slot.sessions.map(session => getSessionDetails(session))}
                 </div>
               </div>
             )}
           </div>
         ))}
       </div>
+      
+      <div className="mt-8">
+        <PhotoSessionDetails />
+      </div>
+
+      {selectedSession && (
+        <PhotoSessionVerification
+          session={selectedSession}
+          onClose={() => setSelectedSession(null)}
+        />
+      )}
     </div>
   );
 };
