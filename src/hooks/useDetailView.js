@@ -127,16 +127,10 @@ export const useDetailView = () => {
   };
 
   const handleCheckIn = async () => {
-    if (!selectedAttendee || !updateAttendee) {
-      console.error('Missing required data for check-in');
-      return;
-    }
-
     try {
       console.log('Starting check-in process for attendee:', selectedAttendee.id);
       
       const updatedAttendee = {
-        ...selectedAttendee, // Preserve existing attendee data
         checkedIn: true,
         email: formState.email,
         photographyTimeSlot: formState.selectedTimeSlot,
@@ -149,12 +143,8 @@ export const useDetailView = () => {
 
       console.log('Updating attendee with data:', updatedAttendee);
       
-      // Update attendee and wait for completion
-      const result = await updateAttendee(selectedAttendee.id, updatedAttendee);
-      
-      if (!result) {
-        throw new Error('Failed to update attendee');
-      }
+      // Make sure updateAttendee is available from context
+      await updateAttendee(selectedAttendee.id, updatedAttendee);
       
       // Refresh attendee list
       await fetchAttendees();
@@ -163,7 +153,7 @@ export const useDetailView = () => {
       setShowConfirmation(true);
     } catch (error) {
       console.error('Error during check-in:', error);
-      throw error; // Re-throw to be handled by caller
+      // Handle error appropriately
     }
   };
 
@@ -174,6 +164,28 @@ export const useDetailView = () => {
       }
     } else {
       setSelectedAttendee(null);
+    }
+  };
+
+  const handleTimeSlotSelect = async (timeSlot) => {
+    if (!selectedAttendee) return;
+
+    try {
+      // Update both attendee and photo session
+      await updatePhotoSession(selectedAttendee.id, {
+        timeSlot,
+        email: formState.photographyEmail,
+        status: 'scheduled'
+      });
+
+      setFormState(prev => ({
+        ...prev,
+        photographyTimeSlot: timeSlot
+      }));
+
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error('Error updating time slot:', error);
     }
   };
 
@@ -189,6 +201,7 @@ export const useDetailView = () => {
     handleSaveChanges,
     handleCheckIn,
     handleClose,
-    selectedAttendee
+    selectedAttendee,
+    handleTimeSlotSelect
   };
 };

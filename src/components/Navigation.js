@@ -2,7 +2,6 @@ import React, { useContext, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AttendeeContext } from '../AttendeeContext';
 import { PhotoContext } from '../PhotoContext';
-import initialData from '../attendees2024.json';
 import { useNavigation } from '../hooks/useNavigation';
 
 const Navigation = () => {
@@ -14,12 +13,72 @@ const Navigation = () => {
     showResetModal,
     setShowResetModal,
     showSuccessToast,
-    toastMessage,
-    handleReset,
-    handleExport
+    setShowSuccessToast,
+    toastMessage
   } = useNavigation();
-  const { selectedAttendee, resetToInitial, exportAttendeesToCSV } = useContext(AttendeeContext);
-  const { setPhotoSessions } = useContext(PhotoContext);
+
+  const { 
+    attendees,
+    selectedAttendee, 
+    setSelectedAttendee, 
+    resetToInitial, 
+    fetchAttendees 
+  } = useContext(AttendeeContext);
+
+  const { 
+    photoSessions, 
+    setPhotoSessions 
+  } = useContext(PhotoContext);
+
+  const handleReset = async () => {
+    try {
+      // Reset both contexts
+      await resetToInitial();
+      setPhotoSessions([]);
+      setSelectedAttendee(null);
+      
+      // Clear local storage
+      localStorage.removeItem('hydro_attendees');
+      localStorage.removeItem('hydro_photo_sessions');
+      
+      // Fetch fresh data
+      await fetchAttendees();
+      
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+    } catch (error) {
+      console.error('Error resetting data:', error);
+      alert('Failed to reset data. Please try again.');
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      // Combine attendee and photo session data
+      const exportData = attendees.map(attendee => {
+        const photoSession = photoSessions.find(s => s.attendeeId === attendee.id);
+        return {
+          ...attendee,
+          photoTimeSlot: photoSession?.timeSlot || attendee.photographyTimeSlot || '',
+          photoEmail: photoSession?.email || attendee.photographyEmail || '',
+          photoStatus: photoSession?.status || attendee.photographyStatus || 'pending'
+        };
+      });
+
+      // Convert to CSV
+      const csvContent = convertToCSV(exportData);
+      
+      // Download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `holiday_party_data_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      alert('Failed to export data. Please try again.');
+    }
+  };
 
   const navItems = [
     { path: '/', label: 'Attendee List' },
@@ -163,6 +222,38 @@ const Navigation = () => {
       )}
     </nav>
   );
+};
+
+// Helper function to convert data to CSV
+const convertToCSV = (data) => {
+  const headers = [
+    'First Name',
+    'Last Name',
+    'Email',
+    'Photo Time',
+    'Photo Email',
+    'Photo Status',
+    'Service Center',
+    'Children',
+    'Guests'
+  ];
+
+  const rows = data.map(item => [
+    item.firstName,
+    item.lastName,
+    item.email,
+    item.photoTimeSlot,
+    item.photoEmail,
+    item.photoStatus,
+    item.serviceCenter,
+    (item.children || []).map(c => c.name).join('; '),
+    (item.guestNames || []).join('; ')
+  ]);
+
+  return [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${cell || ''}"`).join(','))
+  ].join('\n');
 };
 
 export default Navigation;

@@ -16,7 +16,8 @@ const DetailView = () => {
     handleSaveChanges,
     handleCheckIn,
     selectedAttendee,
-    handleClose
+    handleClose,
+    handleTimeSlotSelect
   } = useDetailView();
 
   if (!selectedAttendee) return null;
@@ -53,9 +54,11 @@ const DetailView = () => {
           {/* Time Slot Selection */}
           <div>
             <label className="block font-medium mb-1">Photo Session Time</label>
-            <SchedulingGrid
-              selectedSlot={formState.selectedTimeSlot}
-              onTimeSlotSelect={(time) => handleInputChange('selectedTimeSlot', time)}
+            <input
+              type="time"
+              value={formState.photographyTimeSlot}
+              onChange={(e) => handleTimeSlotSelect(e.target.value)}
+              className="w-full p-2 border rounded"
             />
           </div>
 
