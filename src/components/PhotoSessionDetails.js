@@ -1,11 +1,14 @@
 import React, { useContext, useState } from 'react';
 import { PhotoContext } from '../PhotoContext';
 import { AttendeeContext } from '../AttendeeContext';
+import { formatTimeSlot } from '../utils/timeSlots';
+import { validateEmail } from '../utils/validation';
 
 const PhotoSessionDetails = () => {
   const { selectedAttendee } = useContext(AttendeeContext);
   const { photoSessions, updatePhotoSession } = useContext(PhotoContext);
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   if (!selectedAttendee) {
     return (
@@ -18,8 +21,12 @@ const PhotoSessionDetails = () => {
   const session = photoSessions.find(p => p.attendeeId === selectedAttendee.id);
 
   const handleConfirm = () => {
-    if (!email) {
-      alert('Please enter an email address');
+    // Clear previous error
+    setEmailError('');
+
+    // Validate email
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
       return;
     }
     
@@ -72,7 +79,7 @@ const PhotoSessionDetails = () => {
         {session?.timeSlot && (
           <div>
             <p className="font-medium">Scheduled Time</p>
-            <p>{session.timeSlot}</p>
+            <p>{formatTimeSlot(session.timeSlot)}</p>
           </div>
         )}
 
@@ -87,15 +94,21 @@ const PhotoSessionDetails = () => {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 border rounded"
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setEmailError(''); // Clear error on change
+            }}
+            className={`w-full p-2 border rounded ${emailError ? 'border-red-500' : ''}`}
             placeholder="Enter email address"
           />
+          {emailError && (
+            <p className="text-red-500 text-sm mt-1">{emailError}</p>
+          )}
         </div>
 
         <button
           onClick={handleConfirm}
-          className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mt-4"
         >
           Confirm Email
         </button>

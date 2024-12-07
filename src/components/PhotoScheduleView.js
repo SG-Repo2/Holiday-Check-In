@@ -1,5 +1,6 @@
 import React, { useContext } from 'react';
 import { AttendeeContext } from '../AttendeeContext';
+import { formatTimeSlot } from '../utils/timeSlots';
 
 const PhotoScheduleView = () => {
   const { attendees, completePhotoSession } = useContext(AttendeeContext);
@@ -24,7 +25,9 @@ const PhotoScheduleView = () => {
                 <h3 className="text-lg font-semibold">
                   {attendee.firstName} {attendee.lastName}
                 </h3>
-                <p className="text-gray-600">Time: {attendee.photographyTimeSlot}</p>
+                <p className="text-gray-600">
+                  Time: {formatTimeSlot(attendee.photographyTimeSlot)}
+                </p>
                 <p className="text-gray-600">
                   Participants: {(attendee.children?.length || 0) + 1} 
                   {attendee.children?.length > 0 && 

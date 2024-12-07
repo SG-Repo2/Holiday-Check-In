@@ -2,6 +2,7 @@ import React from 'react';
 import { useDetailView } from '../hooks/useDetailView';
 import SchedulingGrid from './SchedulingGrid';
 import ChildrenList from './ChildrenList';
+import { TIME_SLOTS, formatTimeSlot } from '../utils/timeSlots';
 
 const DetailView = () => {
   const {
@@ -59,15 +60,21 @@ const DetailView = () => {
               <span className="text-sm text-gray-500">(Optional)</span>
             </div>
             <div className="space-y-2">
-              <input
-                type="time"
+              <select
                 value={formState.photographyTimeSlot}
                 onChange={(e) => {
                   handleInputChange('photographyTimeSlot', e.target.value);
                   handleTimeSlotSelect(e.target.value);
                 }}
                 className="w-full p-2 border rounded"
-              />
+              >
+                <option value="">Select Time</option>
+                {TIME_SLOTS.map(slot => (
+                  <option key={slot.value} value={slot.value}>
+                    {slot.display}
+                  </option>
+                ))}
+              </select>
               {!formState.photographyTimeSlot && selectedAttendee.checkedIn && (
                 <p className="text-sm text-blue-600">
                   You can schedule photos later by editing this attendee's information.
