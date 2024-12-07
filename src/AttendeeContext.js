@@ -1,5 +1,6 @@
 // src/AttendeeContext.js
 import React, { createContext, useState, useEffect } from 'react';
+import { createAttendee } from './services/api';
 
 export const AttendeeContext = createContext();
 
@@ -173,6 +174,32 @@ export const AttendeeProvider = ({ children }) => {
     }
   };
 
+  // Add addAttendee function
+  const addAttendee = async (newAttendee) => {
+    try {
+      console.log('Adding attendee to API:', newAttendee);
+      
+      // Use the API service instead of direct fetch
+      const addedAttendee = await createAttendee(newAttendee);
+      
+      // Update local state
+      setAttendees(prev => [...prev, addedAttendee]);
+      
+      // Update localStorage
+      try {
+        const updatedAttendees = [...attendees, addedAttendee];
+        localStorage.setItem('hydro_attendees', JSON.stringify(updatedAttendees));
+      } catch (e) {
+        console.error('Failed to update localStorage:', e);
+      }
+      
+      return addedAttendee;
+    } catch (error) {
+      console.error('Error in addAttendee:', error);
+      throw error;
+    }
+  };
+
   // Load initial data
   useEffect(() => {
     // Try to load from localStorage first
@@ -201,6 +228,7 @@ export const AttendeeProvider = ({ children }) => {
       fetchAttendees,
       updateChild,
       removeChild,
+      addAttendee,
       loading,
       error
     }}>

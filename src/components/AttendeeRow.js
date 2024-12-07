@@ -6,6 +6,19 @@ const AttendeeRow = ({ attendee, showCheckedIn }) => {
   const { selectedAttendee, setSelectedAttendee, updateAttendee } = useContext(AttendeeContext);
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState(attendee);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const validateAttendeeData = (data) => {
+    if (!data.firstName || data.firstName.trim() === '') {
+      throw new Error('First name is required');
+    }
+    if (!data.lastName || data.lastName.trim() === '') {
+      throw new Error('Last name is required');
+    }
+    if (data.email && !data.email.includes('@')) {
+      throw new Error('Invalid email format');
+    }
+  };
 
   const handleClick = () => {
     setSelectedAttendee(attendee);
@@ -18,17 +31,26 @@ const AttendeeRow = ({ attendee, showCheckedIn }) => {
 
   const handleSave = async (e) => {
     e.stopPropagation();
+    if (isSubmitting) return;
+
     try {
-      const updatedAttendee = await updateAttendee(attendee.id, editedData);
+      setIsSubmitting(true);
+      validateAttendeeData(editedData);
+
+      const updatedAttendee = await updateAttendee(attendee.id, {
+        ...editedData,
+        firstName: editedData.firstName.trim(),
+        lastName: editedData.lastName.trim(),
+        email: editedData.email?.trim() || null
+      });
+
       if (updatedAttendee) {
         setIsEditing(false);
-        setSelectedAttendee(null);
-      } else {
-        console.error('Failed to update attendee: No response from server');
       }
     } catch (error) {
-      console.error('Error updating attendee:', error);
-      // Optionally show error to user
+      alert(error.message || 'Error saving changes. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

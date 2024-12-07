@@ -2,10 +2,22 @@
 import React, { useContext, useState } from 'react';
 import { AttendeeContext } from '../AttendeeContext';
 
-const ChildrenList = ({ attendee, onVerifyChild, verifiedChildren }) => {
+const ChildrenList = ({ attendee, onVerifyChild, onUpdateChild, verifiedChildren }) => {
   const { updateChild, removeChild } = useContext(AttendeeContext);
   const [editingChild, setEditingChild] = useState(null);
   const [newChild, setNewChild] = useState({ name: '', age: '', gender: '' });
+
+  const validateChild = (child) => {
+    if (!child.name || child.name.trim() === '') {
+      throw new Error('Child name is required');
+    }
+    if (!child.age || isNaN(parseInt(child.age))) {
+      throw new Error('Valid age is required');
+    }
+    if (!child.gender || !['Male', 'Female'].includes(child.gender)) {
+      throw new Error('Gender must be selected');
+    }
+  };
 
   const handleVerify = (child) => {
     if (!updateChild) {
@@ -29,22 +41,21 @@ const ChildrenList = ({ attendee, onVerifyChild, verifiedChildren }) => {
     setEditingChild({ ...child, originalName: child.name });
   };
 
-  const handleSaveEdit = () => {
-    if (!editingChild.name || !editingChild.age || !editingChild.gender) {
-      alert('Please fill in all fields');
-      return;
-    }
-  
-    // Update child information
-    updateChild(attendee.id, editingChild.originalName || editingChild.name, {
-      name: editingChild.name,
-      age: parseInt(editingChild.age),
-      gender: editingChild.gender,
-      verified: editingChild.verified || false
-    });
+  const handleSaveEdit = async () => {
+    try {
+      validateChild(editingChild);
+      
+      await onUpdateChild(editingChild.originalName || editingChild.name, {
+        name: editingChild.name.trim(),
+        age: parseInt(editingChild.age),
+        gender: editingChild.gender,
+        verified: editingChild.verified || false
+      });
 
-    // Close the editing modal
-    setEditingChild(null);
+      setEditingChild(null);
+    } catch (error) {
+      alert(error.message || 'Error saving changes. Please try again.');
+    }
   };
 
   const handleRemoveChild = (childName) => {
@@ -57,6 +68,23 @@ const ChildrenList = ({ attendee, onVerifyChild, verifiedChildren }) => {
 
   const isChildVerified = (childName) => {
     return verifiedChildren.some(vc => vc.name === childName);
+  };
+
+  const handleAddNewChild = async () => {
+    try {
+      validateChild(newChild);
+      
+      await onUpdateChild(null, {
+        name: newChild.name.trim(),
+        age: parseInt(newChild.age),
+        gender: newChild.gender,
+        verified: false
+      });
+
+      setNewChild({ name: '', age: '', gender: '' });
+    } catch (error) {
+      alert(error.message || 'Error adding child. Please try again.');
+    }
   };
 
   return (

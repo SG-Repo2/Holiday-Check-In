@@ -1,12 +1,14 @@
-const API_URL = 'http://localhost:3001/api';
+const API_BASE_URL = 'https://chiwebdev.com/hydro/server/api';
 
 export const getAllAttendees = async () => {
-    const response = await fetch(`${API_URL}/attendees`, {
-        credentials: 'include',
+    const response = await fetch(`${API_BASE_URL}/attendees`, {
         headers: {
             'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
     });
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -15,12 +17,14 @@ export const getAllAttendees = async () => {
 };
 
 export const getAttendee = async (id) => {
-    const response = await fetch(`${API_URL}/attendees/${id}`, {
-        credentials: 'include',
+    const response = await fetch(`${API_BASE_URL}/attendees/${id}`, {
         headers: {
             'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
     });
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -29,9 +33,8 @@ export const getAttendee = async (id) => {
 };
 
 export const createAttendee = async (attendee) => {
-    const response = await fetch(`${API_URL}/attendees`, {
+    const response = await fetch(`${API_BASE_URL}/attendees`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
@@ -45,9 +48,8 @@ export const createAttendee = async (attendee) => {
 };
 
 export const updateAttendee = async (id, attendee) => {
-    const response = await fetch(`${API_URL}/attendees/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/attendees/${id}`, {
         method: 'PUT',
-        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
@@ -61,9 +63,8 @@ export const updateAttendee = async (id, attendee) => {
 };
 
 export const deleteAttendee = async (id) => {
-    const response = await fetch(`${API_URL}/attendees/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/attendees/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
         headers: {
             'Accept': 'application/json'
         }
