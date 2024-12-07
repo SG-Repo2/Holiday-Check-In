@@ -17,7 +17,8 @@ const DetailView = () => {
     handleCheckIn,
     selectedAttendee,
     handleClose,
-    handleTimeSlotSelect
+    handleTimeSlotSelect,
+    handleChildUpdate
   } = useDetailView();
 
   if (!selectedAttendee) return null;
@@ -51,15 +52,28 @@ const DetailView = () => {
             />
           </div>
 
-          {/* Time Slot Selection */}
+          {/* Time Slot Selection - Optional */}
           <div>
-            <label className="block font-medium mb-1">Photo Session Time</label>
-            <input
-              type="time"
-              value={formState.photographyTimeSlot}
-              onChange={(e) => handleTimeSlotSelect(e.target.value)}
-              className="w-full p-2 border rounded"
-            />
+            <div className="flex justify-between items-center mb-1">
+              <label className="block font-medium">Photo Session Time</label>
+              <span className="text-sm text-gray-500">(Optional)</span>
+            </div>
+            <div className="space-y-2">
+              <input
+                type="time"
+                value={formState.photographyTimeSlot}
+                onChange={(e) => {
+                  handleInputChange('photographyTimeSlot', e.target.value);
+                  handleTimeSlotSelect(e.target.value);
+                }}
+                className="w-full p-2 border rounded"
+              />
+              {!formState.photographyTimeSlot && selectedAttendee.checkedIn && (
+                <p className="text-sm text-blue-600">
+                  You can schedule photos later by editing this attendee's information.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Notes Field */}
@@ -74,67 +88,45 @@ const DetailView = () => {
             />
           </div>
 
-          {/* Photography Section */}
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-4">Photography Session</h3>
-            
-            {/* Photography Status */}
-            <div className="mb-4">
-              <label className="block font-medium mb-1">Status</label>
-              <select
-                value={formState.photographyStatus}
-                onChange={(e) => handleInputChange('photographyStatus', e.target.value)}
-                className="w-full p-2 border rounded"
-              >
-                <option value="pending">Pending</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="verified">Verified</option>
-                <option value="declined">Declined</option>
-              </select>
-            </div>
+          {/* Photography Section - Only show if time slot is selected or already has photo data */}
+          {(formState.photographyTimeSlot || selectedAttendee.photographyStatus) && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4">Photography Session</h3>
+              
+              {/* Photography Email */}
+              <div className="mb-4">
+                <label className="block font-medium mb-1">Photography Email</label>
+                <input
+                  type="email"
+                  value={formState.photographyEmail}
+                  onChange={(e) => handleInputChange('photographyEmail', e.target.value)}
+                  className="w-full p-2 border rounded"
+                  placeholder="Enter email for photography"
+                />
+              </div>
 
-            {/* Photography Email */}
-            <div className="mb-4">
-              <label className="block font-medium mb-1">Photography Email</label>
-              <input
-                type="email"
-                value={formState.photographyEmail}
-                onChange={(e) => handleInputChange('photographyEmail', e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="Enter email for photography"
-              />
+              {/* Display current status */}
+              {selectedAttendee.photographyStatus && (
+                <div className="mb-4">
+                  <label className="block font-medium mb-1">Current Status</label>
+                  <div className={`px-3 py-2 rounded ${
+                    selectedAttendee.photographyStatus === 'completed' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {selectedAttendee.photographyStatus === 'completed' ? 'Photos Completed' : 'Photos Scheduled'}
+                  </div>
+                </div>
+              )}
             </div>
-
-            {/* Photography Address */}
-            <div className="mb-4">
-              <label className="block font-medium mb-1">Delivery Address</label>
-              <input
-                type="text"
-                value={formState.photographyAddress}
-                onChange={(e) => handleInputChange('photographyAddress', e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="Enter delivery address"
-              />
-            </div>
-
-            {/* Time Slot Selection */}
-            <div className="mb-4">
-              <label className="block font-medium mb-1">Time Slot</label>
-              <input
-                type="text"
-                value={formState.photographyTimeSlot}
-                onChange={(e) => handleInputChange('photographyTimeSlot', e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="Select time slot"
-              />
-            </div>
-          </div>
+          )}
 
           {/* Children List */}
           {selectedAttendee.children?.length > 0 && (
             <ChildrenList
               attendee={selectedAttendee}
               onVerifyChild={handleVerifyChild}
+              onUpdateChild={handleChildUpdate}
               verifiedChildren={formState.verifiedChildren}
             />
           )}

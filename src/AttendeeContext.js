@@ -130,9 +130,15 @@ export const AttendeeProvider = ({ children }) => {
         children: updatedChildren
       });
 
+      // Update attendees state immediately
       setAttendees(prev => prev.map(a => 
         a.id === attendeeId ? updatedAttendee : a
       ));
+
+      // If this is the selected attendee, update that too
+      if (selectedAttendee?.id === attendeeId) {
+        setSelectedAttendee(updatedAttendee);
+      }
 
       return updatedAttendee;
     } catch (error) {

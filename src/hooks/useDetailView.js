@@ -7,7 +7,8 @@ export const useDetailView = () => {
     selectedAttendee,
     setSelectedAttendee,
     updateAttendee,
-    fetchAttendees
+    fetchAttendees,
+    updateChild
   } = useContext(AttendeeContext);
 
   const { updatePhotoSession } = useContext(PhotoContext);
@@ -17,7 +18,6 @@ export const useDetailView = () => {
     email: '',
     selectedTimeSlot: null,
     verifiedChildren: [],
-    photographyStatus: 'pending',
     photographyEmail: '',
     photographyAddress: '',
     photographyTimeSlot: ''
@@ -35,7 +35,6 @@ export const useDetailView = () => {
         email: selectedAttendee.email || '',
         selectedTimeSlot: selectedAttendee.photographyTimeSlot || null,
         verifiedChildren: selectedAttendee.children?.filter(child => child.verified) || [],
-        photographyStatus: selectedAttendee.photographyStatus || 'pending',
         photographyEmail: selectedAttendee.photographyEmail || selectedAttendee.email || '',
         photographyAddress: selectedAttendee.photographyAddress || '',
         photographyTimeSlot: selectedAttendee.photographyTimeSlot || ''
@@ -104,25 +103,30 @@ export const useDetailView = () => {
     if (!selectedAttendee) return;
 
     try {
-      // Update basic attendee info
-      await updateAttendee(selectedAttendee.id, {
+      const updatedAttendee = {
         notes: formState.notes,
         email: formState.email
-      });
+      };
 
-      // Update photo session if needed
-      if (formState.photographyStatus !== selectedAttendee.photographyStatus ||
-          formState.photographyTimeSlot !== selectedAttendee.photographyTimeSlot ||
-          formState.photographyEmail !== selectedAttendee.photographyEmail ||
-          formState.photographyAddress !== selectedAttendee.photographyAddress) {
-        await handlePhotoSessionUpdate();
+      // Handle photo session updates
+      if (formState.photographyTimeSlot) {
+        await updatePhotoSession(selectedAttendee.id, {
+          timeSlot: formState.photographyTimeSlot,
+          email: formState.photographyEmail || formState.email,
+          status: 'scheduled'
+        });
+
+        updatedAttendee.photographyTimeSlot = formState.photographyTimeSlot;
+        updatedAttendee.photographyEmail = formState.photographyEmail;
+        updatedAttendee.photographyStatus = 'scheduled';
       }
 
+      await updateAttendee(selectedAttendee.id, updatedAttendee);
       setHasUnsavedChanges(false);
       setShowConfirmation(true);
     } catch (error) {
       console.error('Error saving changes:', error);
-      // Handle error appropriately
+      alert('Error saving changes. Please try again.');
     }
   };
 
@@ -133,7 +137,6 @@ export const useDetailView = () => {
       const updatedAttendee = {
         checkedIn: true,
         email: formState.email,
-        photographyTimeSlot: formState.selectedTimeSlot,
         notes: formState.notes,
         children: selectedAttendee.children?.map(child => ({
           ...child,
@@ -141,9 +144,24 @@ export const useDetailView = () => {
         })) || []
       };
 
+      // Only include photo session data if a time slot was selected
+      if (formState.photographyTimeSlot) {
+        // Update photo session first
+        await updatePhotoSession(selectedAttendee.id, {
+          timeSlot: formState.photographyTimeSlot,
+          email: formState.photographyEmail || formState.email,
+          status: 'scheduled'
+        });
+        
+        // Add photo session data to attendee update
+        updatedAttendee.photographyTimeSlot = formState.photographyTimeSlot;
+        updatedAttendee.photographyEmail = formState.photographyEmail;
+        updatedAttendee.photographyStatus = 'scheduled';
+      }
+
       console.log('Updating attendee with data:', updatedAttendee);
       
-      // Make sure updateAttendee is available from context
+      // Update attendee record
       await updateAttendee(selectedAttendee.id, updatedAttendee);
       
       // Refresh attendee list
@@ -151,9 +169,12 @@ export const useDetailView = () => {
       
       setHasUnsavedChanges(false);
       setShowConfirmation(true);
+      
+      // Close the detail view after successful check-in
+      setSelectedAttendee(null);
     } catch (error) {
       console.error('Error during check-in:', error);
-      // Handle error appropriately
+      alert('Error during check-in. Please try again.');
     }
   };
 
@@ -189,6 +210,24 @@ export const useDetailView = () => {
     }
   };
 
+  const handleChildUpdate = async (childName, updatedChild) => {
+    try {
+      const updatedAttendee = await updateChild(selectedAttendee.id, childName, updatedChild);
+      
+      // Update the selected attendee with the new data
+      setSelectedAttendee(updatedAttendee);
+      
+      // Update form state with new verified children
+      setFormState(prev => ({
+        ...prev,
+        verifiedChildren: updatedAttendee.children?.filter(child => child.verified) || []
+      }));
+    } catch (error) {
+      console.error('Error updating child:', error);
+      alert('Error updating child. Please try again.');
+    }
+  };
+
   return {
     formState,
     showTimeSlotWarning,
@@ -202,6 +241,7 @@ export const useDetailView = () => {
     handleCheckIn,
     handleClose,
     selectedAttendee,
-    handleTimeSlotSelect
+    handleTimeSlotSelect,
+    handleChildUpdate
   };
 };
