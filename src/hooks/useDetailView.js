@@ -6,7 +6,8 @@ export const useDetailView = () => {
   const {
     selectedAttendee,
     setSelectedAttendee,
-    updateAttendee
+    updateAttendee,
+    fetchAttendees
   } = useContext(AttendeeContext);
 
   const { updatePhotoSession } = useContext(PhotoContext);
@@ -15,7 +16,11 @@ export const useDetailView = () => {
     notes: '',
     email: '',
     selectedTimeSlot: null,
-    verifiedChildren: []
+    verifiedChildren: [],
+    photographyStatus: 'pending',
+    photographyEmail: '',
+    photographyAddress: '',
+    photographyTimeSlot: ''
   });
   
   const [showTimeSlotWarning, setShowTimeSlotWarning] = useState(false);
@@ -29,7 +34,11 @@ export const useDetailView = () => {
         notes: selectedAttendee.notes || '',
         email: selectedAttendee.email || '',
         selectedTimeSlot: selectedAttendee.photographyTimeSlot || null,
-        verifiedChildren: selectedAttendee.children?.filter(child => child.verified) || []
+        verifiedChildren: selectedAttendee.children?.filter(child => child.verified) || [],
+        photographyStatus: selectedAttendee.photographyStatus || 'pending',
+        photographyEmail: selectedAttendee.photographyEmail || selectedAttendee.email || '',
+        photographyAddress: selectedAttendee.photographyAddress || '',
+        photographyTimeSlot: selectedAttendee.photographyTimeSlot || ''
       });
       setHasUnsavedChanges(false);
     }
@@ -73,55 +82,61 @@ export const useDetailView = () => {
     }
   };
 
-  const handleSaveChanges = async () => {
+  const handlePhotoSessionUpdate = async () => {
     try {
-      // Update attendee record
-      const updatedAttendee = {
-        ...selectedAttendee,
-        notes: formState.notes,
-        email: formState.email,
-        photographyTimeSlot: formState.selectedTimeSlot,
-        children: selectedAttendee.children?.map(child => ({
-          ...child,
-          verified: formState.verifiedChildren.some(vc => vc.name === child.name)
-        })) || []
+      const photoData = {
+        status: formState.photographyStatus,
+        timeSlot: formState.photographyTimeSlot,
+        email: formState.photographyEmail,
+        address: formState.photographyAddress
       };
 
-      await updateAttendee(selectedAttendee.id, updatedAttendee);
+      await updatePhotoSession(selectedAttendee.id, photoData);
+      setHasUnsavedChanges(false);
+      setShowConfirmation(true);
+    } catch (error) {
+      console.error('Error updating photo session:', error);
+      // Handle error appropriately
+    }
+  };
 
-      // Update photo session if time slot is set
-      if (formState.selectedTimeSlot) {
-        await updatePhotoSession(selectedAttendee.id, {
-          timeSlot: formState.selectedTimeSlot,
-          email: formState.email,
-          notes: formState.notes,
-          totalParticipants: 1 + 
-            (selectedAttendee.children?.length || 0) + 
-            (selectedAttendee.guestNames?.length || 0)
-        });
+  const handleSaveChanges = async () => {
+    if (!selectedAttendee) return;
+
+    try {
+      // Update basic attendee info
+      await updateAttendee(selectedAttendee.id, {
+        notes: formState.notes,
+        email: formState.email
+      });
+
+      // Update photo session if needed
+      if (formState.photographyStatus !== selectedAttendee.photographyStatus ||
+          formState.photographyTimeSlot !== selectedAttendee.photographyTimeSlot ||
+          formState.photographyEmail !== selectedAttendee.photographyEmail ||
+          formState.photographyAddress !== selectedAttendee.photographyAddress) {
+        await handlePhotoSessionUpdate();
       }
 
       setHasUnsavedChanges(false);
-      return true;
+      setShowConfirmation(true);
     } catch (error) {
       console.error('Error saving changes:', error);
-      return false;
+      // Handle error appropriately
     }
   };
 
   const handleCheckIn = async () => {
-    if (!formState.selectedTimeSlot) {
-      setShowTimeSlotWarning(true);
-      return false;
-    }
-
-    if (!formState.email) {
-      return false;
+    if (!selectedAttendee || !updateAttendee) {
+      console.error('Missing required data for check-in');
+      return;
     }
 
     try {
+      console.log('Starting check-in process for attendee:', selectedAttendee.id);
+      
       const updatedAttendee = {
-        ...selectedAttendee,
+        ...selectedAttendee, // Preserve existing attendee data
         checkedIn: true,
         email: formState.email,
         photographyTimeSlot: formState.selectedTimeSlot,
@@ -132,21 +147,23 @@ export const useDetailView = () => {
         })) || []
       };
 
-      await updateAttendee(selectedAttendee.id, updatedAttendee);
-      await updatePhotoSession(selectedAttendee.id, {
-        timeSlot: formState.selectedTimeSlot,
-        email: formState.email,
-        status: 'scheduled',
-        totalParticipants: 1 + 
-          (selectedAttendee.children?.length || 0) + 
-          (selectedAttendee.guestNames?.length || 0)
-      });
-
-      setSelectedAttendee(null);
-      return true;
+      console.log('Updating attendee with data:', updatedAttendee);
+      
+      // Update attendee and wait for completion
+      const result = await updateAttendee(selectedAttendee.id, updatedAttendee);
+      
+      if (!result) {
+        throw new Error('Failed to update attendee');
+      }
+      
+      // Refresh attendee list
+      await fetchAttendees();
+      
+      setHasUnsavedChanges(false);
+      setShowConfirmation(true);
     } catch (error) {
       console.error('Error during check-in:', error);
-      return false;
+      throw error; // Re-throw to be handled by caller
     }
   };
 

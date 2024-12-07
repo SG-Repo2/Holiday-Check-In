@@ -95,16 +95,18 @@ export const PhotoProvider = ({ children }) => {
       const newSessions = [...prev];
       let hasChanges = false;
 
-      // Add sessions for attendees with photography time slots
+      // Add or update sessions for attendees with photography data
       attendees.forEach(attendee => {
-        if (attendee.photographyTimeSlot && !newSessions.find(p => p.attendeeId === attendee.id)) {
+        if (attendee.photographyStatus && !newSessions.find(p => p.attendeeId === attendee.id)) {
           newSessions.push({
             attendeeId: attendee.id,
-            timeSlot: attendee.photographyTimeSlot,
-            email: attendee.email || '',
+            timeSlot: attendee.photographyTimeSlot || '',
+            email: attendee.photographyEmail || attendee.email || '',
+            address: attendee.photographyAddress || '',
+            status: attendee.photographyStatus,
             totalParticipants: 1 + (attendee.children?.length || 0) + (attendee.guestNames?.length || 0),
-            status: 'scheduled',
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            lastSyncedAt: new Date().toISOString()
           });
           hasChanges = true;
         }
@@ -131,27 +133,72 @@ export const PhotoProvider = ({ children }) => {
   }, [attendees, isLoading]);
 
   const updatePhotoSession = async (attendeeId, sessionData) => {
-    setPhotoSessions(prev => {
-      const newSessions = [...prev];
-      const existingIndex = newSessions.findIndex(s => s.attendeeId === attendeeId);
+    try {
+      const API_BASE_URL = 'https://chiwebdev.com/hydro/server/api';
+      console.log('Updating photo session on server:', {
+        attendeeId,
+        sessionData,
+        url: `${API_BASE_URL}/attendees/${attendeeId}`
+      });
       
-      if (existingIndex >= 0) {
-        newSessions[existingIndex] = {
-          ...newSessions[existingIndex],
-          ...sessionData,
-          updatedAt: new Date().toISOString()
-        };
-      } else {
-        newSessions.push({
-          attendeeId,
-          ...sessionData,
-          createdAt: new Date().toISOString()
+      const requestBody = {
+        photographyStatus: sessionData.status || 'scheduled',
+        photographyTimeSlot: sessionData.timeSlot || '',
+        photographyEmail: sessionData.email || '',
+        photographyAddress: sessionData.address || ''
+      };
+      
+      console.log('Request body:', requestBody);
+      
+      // First update the server
+      const response = await fetch(`${API_BASE_URL}/attendees/${attendeeId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server response:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
         });
+        throw new Error('Failed to update photo session on server');
       }
-      
-      persistPhotoSessions(newSessions);
-      return newSessions;
-    });
+
+      const updatedData = await response.json();
+      console.log('Server response:', updatedData);
+
+      // Then update local state
+      setPhotoSessions(prev => {
+        const newSessions = [...prev];
+        const existingIndex = newSessions.findIndex(s => s.attendeeId === attendeeId);
+        const updatedSession = {
+          attendeeId,
+          timeSlot: sessionData.timeSlot || '',
+          email: sessionData.email || '',
+          status: sessionData.status || 'scheduled',
+          totalParticipants: sessionData.totalParticipants || 1,
+          lastUpdated: new Date().toISOString()
+        };
+
+        if (existingIndex >= 0) {
+          newSessions[existingIndex] = updatedSession;
+        } else {
+          newSessions.push(updatedSession);
+        }
+
+        return newSessions;
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating photo session:', error);
+      throw error;
+    }
   };
 
   const resetPhotoSessions = async () => {

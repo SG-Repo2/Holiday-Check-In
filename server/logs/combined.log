@@ -1,0 +1,5 @@
+{"level":"info","message":"Connected to database","timestamp":"2024-12-06T06:10:33.587Z"}
+{"level":"info","message":"Schema created successfully","timestamp":"2024-12-06T06:10:33.966Z"}
+{"level":"info","message":"Read 26 attendees from JSON","timestamp":"2024-12-06T06:10:33.968Z"}
+{"level":"info","message":"Database initialized successfully","timestamp":"2024-12-06T06:10:35.800Z"}
+{"attendees":26,"children":8,"level":"info","message":"Data verification:","photoSessions":0,"timestamp":"2024-12-06T06:10:35.959Z"}

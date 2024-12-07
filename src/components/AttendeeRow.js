@@ -16,11 +16,20 @@ const AttendeeRow = ({ attendee, showCheckedIn }) => {
     setIsEditing(true);
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.stopPropagation();
-    updateAttendee(attendee.id, editedData);
-    setIsEditing(false);
-    setSelectedAttendee(null);
+    try {
+      const updatedAttendee = await updateAttendee(attendee.id, editedData);
+      if (updatedAttendee) {
+        setIsEditing(false);
+        setSelectedAttendee(null);
+      } else {
+        console.error('Failed to update attendee: No response from server');
+      }
+    } catch (error) {
+      console.error('Error updating attendee:', error);
+      // Optionally show error to user
+    }
   };
 
   const handleCancel = (e) => {

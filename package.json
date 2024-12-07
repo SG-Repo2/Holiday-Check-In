@@ -2,6 +2,7 @@
   "name": "hydro-holiday-app",
   "version": "0.1.0",
   "private": true,
+  "homepage": "/hydro",
   "dependencies": {
     "@testing-library/user-event": "^13.5.0",
     "idb": "^8.0.0",

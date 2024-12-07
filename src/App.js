@@ -12,7 +12,7 @@ function App() {
   return (
     <AttendeeProvider>
       <PhotoProvider>
-        <Router>
+        <Router basename="/hydro">
           <Navigation />
           <Routes>
             {/* Landing page route */}

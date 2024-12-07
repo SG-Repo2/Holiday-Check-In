@@ -1,0 +1,11 @@
+# Database backup every day at midnight
+0 0 * * * cd /path/to/hydro-holiday-app && npm run backup-db >> /path/to/hydro-holiday-app/server/logs/backup.log 2>&1
+
+# Database validation every 6 hours
+0 */6 * * * cd /path/to/hydro-holiday-app && npm run validate-db >> /path/to/hydro-holiday-app/server/logs/validation.log 2>&1
+
+# Database maintenance weekly on Sunday at 2 AM
+0 2 * * 0 cd /path/to/hydro-holiday-app && npm run manage-db >> /path/to/hydro-holiday-app/server/logs/maintenance.log 2>&1
+
+# Database statistics daily at 6 AM
+0 6 * * * cd /path/to/hydro-holiday-app && npm run db-stats >> /path/to/hydro-holiday-app/server/logs/stats.log 2>&1

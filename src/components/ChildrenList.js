@@ -8,14 +8,21 @@ const ChildrenList = ({ attendee, onVerifyChild, verifiedChildren }) => {
   const [newChild, setNewChild] = useState({ name: '', age: '', gender: '' });
 
   const handleVerify = (child) => {
+    if (!updateChild) {
+      console.error('updateChild function not available');
+      return;
+    }
+
     // Update child with verified status
     updateChild(attendee.id, child.name, {
       ...child,
       verified: true
+    }).then(() => {
+      // Call verify function from parent
+      onVerifyChild(child);
+    }).catch(error => {
+      console.error('Error verifying child:', error);
     });
-    
-    // Call verify function from parent
-    onVerifyChild(child);
   };
 
   const handleEdit = (child) => {
