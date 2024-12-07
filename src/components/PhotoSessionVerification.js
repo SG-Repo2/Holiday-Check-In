@@ -6,6 +6,7 @@ const PhotoSessionVerification = ({ session, onClose }) => {
   const { updatePhotoSession } = useContext(PhotoContext);
   const { attendees, updateAttendee } = useContext(AttendeeContext);
   const [email, setEmail] = useState(session.email || '');
+  const [emailError, setEmailError] = useState('');
   const [notes, setNotes] = useState(session.notes || '');
 
   const attendee = attendees.find(a => a.id === session.attendeeId);
@@ -13,8 +14,8 @@ const PhotoSessionVerification = ({ session, onClose }) => {
   if (!attendee) return null;
 
   const handleComplete = () => {
-    if (!email) {
-      alert('Please enter an email address for photo delivery');
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
       return;
     }
 
@@ -78,10 +79,16 @@ const PhotoSessionVerification = ({ session, onClose }) => {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded"
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError('');
+              }}
+              className={`w-full p-2 border rounded ${emailError ? 'border-red-500' : ''}`}
               placeholder="Enter email address"
             />
+            {emailError && (
+              <p className="text-red-500 text-sm mt-1">{emailError}</p>
+            )}
           </div>
 
           <div>

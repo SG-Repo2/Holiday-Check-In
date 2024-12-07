@@ -122,9 +122,17 @@ export const AttendeeProvider = ({ children }) => {
       const attendee = attendees.find(a => a.id === attendeeId);
       if (!attendee) throw new Error('Attendee not found');
 
-      const updatedChildren = attendee.children.map(child => 
-        child.name === childName ? { ...child, ...updates } : child
-      );
+      const updatedChildren = attendee.children.map(child => {
+        if (child.name === childName) {
+          // Preserve verified status if not explicitly changed
+          return { 
+            ...child, 
+            ...updates,
+            verified: updates.verified !== undefined ? updates.verified : child.verified 
+          };
+        }
+        return child;
+      });
 
       const updatedAttendee = await updateAttendee(attendeeId, {
         ...attendee,

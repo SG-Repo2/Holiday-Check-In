@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { AttendeeContext } from '../AttendeeContext';
 import { PhotoContext } from '../PhotoContext';
+import { TIME_SLOTS, formatTimeSlot } from '../utils/timeSlots';
 
 const AddAttendeeForm = ({ onClose }) => {
   const { addAttendee } = useContext(AttendeeContext);
@@ -156,12 +157,18 @@ const AddAttendeeForm = ({ onClose }) => {
             <div className="space-y-3">
               <div>
                 <label className="block mb-1">Photo Time</label>
-                <input
-                  type="time"
+                <select
                   value={formData.photographyTimeSlot}
                   onChange={e => setFormData({...formData, photographyTimeSlot: e.target.value})}
                   className="w-full p-2 border rounded"
-                />
+                >
+                  <option value="">Select Time</option>
+                  {TIME_SLOTS.map(slot => (
+                    <option key={slot.value} value={slot.value}>
+                      {formatTimeSlot(slot.value)}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block mb-1">Photography Email</label>

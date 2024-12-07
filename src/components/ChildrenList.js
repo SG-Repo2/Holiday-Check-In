@@ -49,7 +49,7 @@ const ChildrenList = ({ attendee, onVerifyChild, onUpdateChild, verifiedChildren
         name: editingChild.name.trim(),
         age: parseInt(editingChild.age),
         gender: editingChild.gender,
-        verified: editingChild.verified || false
+        verified: editingChild.verified
       });
 
       setEditingChild(null);

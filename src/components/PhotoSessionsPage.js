@@ -1,9 +1,37 @@
 import React, { useContext, useState } from 'react';
 import { AttendeeContext } from '../AttendeeContext';
 import { PhotoContext } from '../PhotoContext';
+import { validateEmail } from '../utils/validation';
+import { formatTimeSlot } from '../utils/timeSlots';
 
 const PhotoSessionRow = ({ attendee, onStatusChange }) => {
   const { updatePhotoSession } = useContext(PhotoContext);
+  const [isEditing, setIsEditing] = useState(false);
+  const [email, setEmail] = useState(attendee.photographyEmail || attendee.email || '');
+  const [emailError, setEmailError] = useState('');
+
+  const handleEmailUpdate = async () => {
+    // Clear previous error
+    setEmailError('');
+
+    // Validate email
+    if (!email || !validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      await updatePhotoSession(attendee.id, {
+        timeSlot: attendee.photographyTimeSlot,
+        email: email,
+        status: attendee.photographyStatus
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating email:', error);
+      setEmailError('Failed to update email. Please try again.');
+    }
+  };
 
   const handleStatusToggle = async () => {
     try {
@@ -18,7 +46,7 @@ const PhotoSessionRow = ({ attendee, onStatusChange }) => {
   };
 
   return (
-    <div className="p-4 mb-2 bg-white rounded shadow cursor-pointer">
+    <div className="p-4 mb-2 bg-white rounded shadow">
       <div className="flex justify-between items-start">
         <div className="flex-grow">
           <h3 className="text-lg font-semibold">
@@ -26,12 +54,54 @@ const PhotoSessionRow = ({ attendee, onStatusChange }) => {
           </h3>
           <div className="space-y-1">
             <p className="text-sm text-gray-600">
-              Time: {attendee.photographyTimeSlot}
+              Time: {formatTimeSlot(attendee.photographyTimeSlot)}
             </p>
-            {attendee.photographyEmail && (
-              <p className="text-sm text-gray-600">
-                Email: {attendee.photographyEmail}
-              </p>
+            {isEditing ? (
+              <div className="flex-grow mx-4">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setEmailError('');
+                  }}
+                  className={`w-full p-2 border rounded ${emailError ? 'border-red-500' : ''}`}
+                  placeholder="Enter email address"
+                />
+                {emailError && (
+                  <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                )}
+                <div className="mt-2 space-x-2">
+                  <button
+                    onClick={handleEmailUpdate}
+                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEmail(attendee.photographyEmail || attendee.email || '');
+                      setEmailError('');
+                    }}
+                    className="px-3 py-1 border rounded hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-grow mx-4">
+                <p className="text-sm text-gray-600">
+                  Email: {attendee.photographyEmail || attendee.email}
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="ml-2 text-blue-500 hover:text-blue-600"
+                  >
+                    Edit
+                  </button>
+                </p>
+              </div>
             )}
             {attendee.serviceCenter && (
               <p className="text-sm text-gray-600">

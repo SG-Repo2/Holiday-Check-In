@@ -217,7 +217,7 @@ export const useDetailView = () => {
       // Update the selected attendee with the new data
       setSelectedAttendee(updatedAttendee);
       
-      // Update form state with new verified children
+      // Update form state with verified children, preserving verification status
       setFormState(prev => ({
         ...prev,
         verifiedChildren: updatedAttendee.children?.filter(child => child.verified) || []
